@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import fcntl
 import functools
+import shutil
 import json
 import os
 import subprocess
@@ -21,6 +22,11 @@ settings.register_profile("c2c", database=None)
 settings.load_profile("c2c")
 
 ROOT = Path(__file__).resolve().parents[1]
+
+# The configuration the commands read when a test names none; it is signed into a scratch directory
+# once per process. Point it at the reviewed fixture configuration once that exists.
+DEFAULT_CONFIG = ROOT / "config"
+SIGNER, ROLE, SIGNED_ON = "Test signer (synthetic)", "finance_lead", "2026-01-01"
 
 
 # ------------------------------------------------------------------ capped DuckDB connections
@@ -135,11 +141,38 @@ def _private_default_paths(tmp_path_factory):
         _default_root = None
 
 
+_process_signoff_dir: Path | None = None
+
+
+def default_signoff_dir() -> Path:
+    """A sign-off of `DEFAULT_CONFIG` in a directory private to this process, made on first use."""
+    global _process_signoff_dir
+    if _process_signoff_dir is None:
+        from c2c import signoff
+
+        _process_signoff_dir = Path(tempfile.mkdtemp(prefix="c2c-signoff-"))
+        signoff.write_for(DEFAULT_CONFIG, _process_signoff_dir, SIGNER, ROLE, SIGNED_ON)
+    return _process_signoff_dir
+
+
+def signed_config(tmp_path: Path, source: Path = DEFAULT_CONFIG) -> tuple[Path, Path]:
+    """Copy the configuration directory `source` under `tmp_path` and sign the copy.
+
+    Returns `(config_dir, signoff_dir)`. A test edits the copy to make its sign-off stale."""
+    from c2c import signoff
+
+    config_dir, signoff_dir = tmp_path / "config", tmp_path / "signoff"
+    shutil.copytree(source, config_dir, ignore=shutil.ignore_patterns("signoff"))
+    signoff.write_for(config_dir, signoff_dir, SIGNER, ROLE, SIGNED_ON)
+    return config_dir, signoff_dir
+
+
 def c2c(*args: str, env: dict | None = None) -> Result:
     """Run `python -m c2c` with every path pointed at a per-test temporary root and no `C2C_*`
     variable inherited from the environment; `env` adds or overrides variables."""
     full_env = {k: v for k, v in os.environ.items() if not k.startswith("C2C_")}
     full_env.update(default_paths())
+    full_env["C2C_SIGNOFF_DIR"] = str(default_signoff_dir())
     full_env.update(env or {})
     proc = subprocess.run(
         [sys.executable, "-m", "c2c", *args],

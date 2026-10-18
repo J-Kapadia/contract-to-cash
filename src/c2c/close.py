@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from pathlib import Path
 
-from . import controls, db, dbt_runner, load, paths, prov
+from . import controls, db, dbt_runner, load, paths, prov, signoff
 from .envelope import Envelope
 from .gen import generate
 
@@ -22,10 +22,13 @@ def ensure_fixture_books(resolved: paths.Paths) -> None:
 
 
 def close_month(resolved: paths.Paths, month: str, reference: str | Path = DEFAULT_REFERENCE) -> Envelope:
-    """Load every month from the books' first through `month`, run dbt once, and report."""
+    """Load every month from the books' first through `month`, run dbt once, and report.
+
+    Refuses with exit 4 unless the configuration in force is signed."""
     load.check_month(month)
     ensure_fixture_books(resolved)
     first, _ = load.check_in_window(resolved.books, month)
+    signoff.check(resolved.config, resolved.signoff)  # before the warehouse is opened
 
     run_id = uuid.uuid4().hex
     con = db.connect(resolved.warehouse)
