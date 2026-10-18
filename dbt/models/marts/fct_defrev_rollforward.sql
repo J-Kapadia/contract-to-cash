@@ -10,9 +10,14 @@
 -- subscription lines', because a credit's billing is added here.
 
 with customer_key as (
-    select contract_id, min(crm_account_id) as customer_id
-    from {{ ref('stg_contracts') }}
-    group by contract_id
+    select
+        stg_invoices.contract_id,
+        coalesce(min(members.customer_id), min(contracts.crm_account_id)) as customer_id
+    from {{ ref('stg_invoices') }}
+    inner join {{ ref('int_customer_members') }} as members
+        on members.source_system = 'billing' and members.source_id = stg_invoices.billing_customer_id
+    left join {{ ref('stg_contracts') }} as contracts on contracts.contract_id = stg_invoices.contract_id
+    group by stg_invoices.contract_id
 ),
 
 billings as (

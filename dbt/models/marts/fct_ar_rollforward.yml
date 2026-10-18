@@ -4,7 +4,7 @@ models:
   - name: fct_ar_rollforward
     description: >
       Accounts receivable per customer per month. Opening + billed - collected - credits =
-      closing; additions and reductions are the same movements summed for the plan's column names.
+      closing; additions and reductions are the same movements summed under the mart's standard column names.
     columns:
       - name: month
         data_tests: [not_null]

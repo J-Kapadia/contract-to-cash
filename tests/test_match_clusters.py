@@ -62,7 +62,7 @@ def mini_clusters(tmp_path_factory, mini_scored) -> Path:  # noqa: F811
 
     def build(directory: Path) -> None:
         shutil.copy(mini_scored, directory / "w.duckdb")
-        dbt_runner.build(directory / "w.duckdb", select="int_match_clusters+")
+        dbt_runner.build(directory / "w.duckdb", select="int_match_clusters dim_customer int_customer_members")
 
     return shared_dir(tmp_path_factory, "clusters-mini", build) / "w.duckdb"
 
@@ -142,7 +142,7 @@ def test_a_doubt_pair_without_a_decision_leaves_its_clusters_pending(tmp_path, m
         con.execute("DELETE FROM raw.ref_customer_matches")
     finally:
         con.close()
-    dbt_runner.build(warehouse, select="fct_match_candidates+")
+    dbt_runner.build(warehouse, select="fct_match_candidates int_match_clusters dim_customer int_customer_members")
     rows = query(warehouse, "SELECT customer_id, review_state, member_count FROM mart.dim_customer")
     pending = {c for c, s, _ in rows if s == "pending"}
     undecided = {x for a, b, _ in designed_pairs() for x in (a, b) if x.startswith("acct_")}

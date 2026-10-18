@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 
 from c2c import db, dbt_runner, load
-from conftest import MINI_BOOKS, MINI_WINDOW, ROOT, shared_dir
+from conftest import DEFAULT_CONFIG, MINI_BOOKS, MINI_WINDOW, ROOT, shared_dir
 
 REFERENCE = ROOT / "data" / "reference"
 EXPECTED = ROOT / "tests" / "fixtures" / "expected" / "bridge.csv"
@@ -26,6 +26,7 @@ def build(warehouse: Path) -> None:
         db.init_schemas(con)
         load.load_months(con, MINI_BOOKS, *MINI_WINDOW, "test")
         load.load_reference(con, REFERENCE)
+        load.load_config(con, DEFAULT_CONFIG)
     finally:
         con.close()
     dbt_runner.build(warehouse, select="+fct_bridge")

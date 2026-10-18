@@ -1,0 +1,19 @@
+version: 2
+
+models:
+  - name: int_cash_application
+    description: >
+      Bank receipts applied to invoices. kind is applied (a payment row), auto_applied (no payment
+      row, but the counterparty is a master customer and the amount equals exactly one of its open
+      invoices) or unmatched (applies nothing, applied_cents 0). Payments without a bank
+      transaction are applied rows too.
+    columns:
+      - name: kind
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [applied, auto_applied, unmatched]
+      - name: applied_cents
+        data_tests: [not_null]
+      - name: applied_on
+        data_tests: [not_null]
