@@ -1,0 +1,13 @@
+# Patterns the pre-push hook refuses in a pushed commit message or file (extended regular
+# expressions, case-sensitive, one per line; blank lines and '#' lines ignored). They are
+# the shapes of references to material that is not part of this repository. This file is
+# the one file the hook does not scan.
+§
+DN-[0-9]
+GAP-[0-9]
+EC-[0-9]{2}
+\bG[123]\b
+plan\.md
+NEEDLE
+claude\.ai
+DECIDED

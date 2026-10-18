@@ -17,6 +17,15 @@
 *.pem
 *.key
 
+# Build outputs (generated, never tracked)
+warehouse/
+data/books/
+data/truth/
+site/
+dbt/target/
+dbt/logs/
+.venv/
+
 # Build and tool state
 node_modules/
 dist/
@@ -24,6 +33,5 @@ build/
 target/
 __pycache__/
 *.pyc
-.venv/
 *.log
 .DS_Store

@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# Pre-push hook: refuses a push that would publish private material.
+#
+# For every commit about to be pushed it refuses when
+#   - the commit adds or changes a file under a private path,
+#   - the commit message (Bead-Id trailers aside) or a file it changes matches a term of the
+#     denylist or a pattern of scripts/private-terms.txt,
+# and it refuses every push while the denylist is absent or empty.
+#
+# The denylist is C2C_DENYLIST_PATH, default $HOME/.needle/contract-to-cash.denylist: one
+# case-insensitive literal term per line, blank lines and '#' lines ignored. The output
+# names commits and file:line only, never the matched text.
+#
+# Install with scripts/install-hooks.sh. Git passes the remote name and URL as arguments
+# and one "<local ref> <local sha> <remote ref> <remote sha>" line per ref on stdin.
+set -uo pipefail
+
+here=$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)
+deny=${C2C_DENYLIST_PATH:-$HOME/.needle/contract-to-cash.denylist}
+zero=0000000000000000000000000000000000000000
+
+private_paths='^(docs/(plan|notes|research|build-log)/|notes/|AGENTS\.md$|CLAUDE\.md$|\.needle\.yaml$|\.beads/|\.private\.git/|\.claude/)'
+
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+
+terms_only() { grep -Ev '^[[:space:]]*(#|$)' "$1" 2>/dev/null || true; }
+
+if [ -f "$deny" ]; then terms_only "$deny" > "$tmp/terms"; else : > "$tmp/terms"; fi
+if [ ! -s "$tmp/terms" ]; then
+  echo "pre-push: denylist missing" >&2
+  exit 1
+fi
+terms_only "$here/private-terms.txt" > "$tmp/patterns"
+if [ ! -s "$tmp/patterns" ]; then
+  echo "pre-push: scripts/private-terms.txt missing or empty: refusing" >&2
+  exit 1
+fi
+
+status=0
+refuse() { echo "pre-push: $1" >&2; status=1; }
+
+while read -r _ local_sha _ remote_sha; do
+  [ "$local_sha" = "$zero" ] && continue   # deleting a ref pushes no commits
+  if [ "$remote_sha" != "$zero" ] && git cat-file -e "$remote_sha^{commit}" 2>/dev/null; then
+    range=("$remote_sha..$local_sha")
+  else
+    range=("$local_sha" --not --remotes)
+  fi
+  while IFS= read -r c; do
+    short=${c:0:12}
+    if git show -s --format=%B "$c" | grep -Ev '^Bead-Id:' > "$tmp/msg"; then :; fi
+    if grep -qiF -f "$tmp/terms" "$tmp/msg"; then refuse "commit $short: message matches the denylist"; fi
+    if grep -qE -f "$tmp/patterns" "$tmp/msg"; then refuse "commit $short: message matches a private term pattern"; fi
+    git diff-tree --root -m -r --no-commit-id --name-only --diff-filter=ACMR -z "$c" \
+      | sort -zu > "$tmp/files"
+    while IFS= read -r -d '' f; do
+      if printf '%s\n' "$f" | grep -qE "$private_paths"; then
+        refuse "commit $short: adds a file under a private path: $f"
+        continue
+      fi
+      [ "$f" = scripts/private-terms.txt ] && continue
+      git show "$c:$f" > "$tmp/blob" 2>/dev/null || continue
+      while IFS= read -r n; do
+        refuse "commit $short: denylist match: $f:$n"
+      done < <(grep -nIiF -f "$tmp/terms" "$tmp/blob" | cut -d: -f1)
+      while IFS= read -r n; do
+        refuse "commit $short: private term pattern match: $f:$n"
+      done < <(grep -nIE -f "$tmp/patterns" "$tmp/blob" | cut -d: -f1)
+    done < "$tmp/files"
+  done < <(git rev-list "${range[@]}")
+done
+
+exit "$status"
