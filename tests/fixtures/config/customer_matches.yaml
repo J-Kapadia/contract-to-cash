@@ -1,0 +1,14 @@
+# Reviewed customer matches for the `mini` fixture: one decision per doubt-band pair.
+#
+# Each entry is {a, b, decision, reason}: `a` and `b` are the two source customer ids,
+# `decision` is `same` or `different`, `reason` is the reviewer's one-line reason.
+# The file is hashed for sign-off; any edit after signing must be signed again.
+pairs:
+  - a: acct_0009
+    b: bill_0009
+    decision: same
+    reason: same website (umberpublishing.example) and the names differ by one dropped letter ("umber publshing" / "umber publishing")
+  - a: acct_0007
+    b: bill_0003
+    decision: different
+    reason: same website (reedrail.example) but different names ("reed rail" / "reed shipping") and no shared contact email or remittance

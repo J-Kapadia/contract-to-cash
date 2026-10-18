@@ -29,9 +29,9 @@ MINI_BOOKS = ROOT / "tests" / "fixtures" / "books"
 MINI_TRUTH = ROOT / "tests" / "fixtures" / "truth"
 MINI_WINDOW = ("2024-10", "2026-03")
 
-# The configuration the commands read when a test names none; it is signed into a scratch directory
-# once per process. Point it at the reviewed fixture configuration once that exists.
-DEFAULT_CONFIG = ROOT / "config"
+# The configuration the commands read when a test names none: the reviewed `mini` configuration,
+# copied and signed into a scratch directory once per process.
+DEFAULT_CONFIG = ROOT / "tests" / "fixtures" / "config"
 SIGNER, ROLE, SIGNED_ON = "Test signer (synthetic)", "finance_lead", "2026-01-01"
 
 
@@ -147,18 +147,22 @@ def _private_default_paths(tmp_path_factory):
         _default_root = None
 
 
-_process_signoff_dir: Path | None = None
+_process_signed: tuple[Path, Path] | None = None
 
 
-def default_signoff_dir() -> Path:
-    """A sign-off of `DEFAULT_CONFIG` in a directory private to this process, made on first use."""
-    global _process_signoff_dir
-    if _process_signoff_dir is None:
+def default_signed_config() -> tuple[Path, Path]:
+    """`(config_dir, signoff_dir)`: a copy of `DEFAULT_CONFIG` and its sign-off, in a directory
+    private to this process, made on first use. The committed directory is never signed."""
+    global _process_signed
+    if _process_signed is None:
         from c2c import signoff
 
-        _process_signoff_dir = Path(tempfile.mkdtemp(prefix="c2c-signoff-"))
-        signoff.write_for(DEFAULT_CONFIG, _process_signoff_dir, SIGNER, ROLE, SIGNED_ON)
-    return _process_signoff_dir
+        root = Path(tempfile.mkdtemp(prefix="c2c-signoff-"))
+        config_dir, signoff_dir = root / "config", root / "signoff"
+        shutil.copytree(DEFAULT_CONFIG, config_dir, ignore=shutil.ignore_patterns("signoff"))
+        signoff.write_for(config_dir, signoff_dir, SIGNER, ROLE, SIGNED_ON)
+        _process_signed = (config_dir, signoff_dir)
+    return _process_signed
 
 
 def signed_config(tmp_path: Path, source: Path = DEFAULT_CONFIG) -> tuple[Path, Path]:
@@ -178,7 +182,9 @@ def c2c(*args: str, env: dict | None = None) -> Result:
     variable inherited from the environment; `env` adds or overrides variables."""
     full_env = {k: v for k, v in os.environ.items() if not k.startswith("C2C_")}
     full_env.update(default_paths())
-    full_env["C2C_SIGNOFF_DIR"] = str(default_signoff_dir())
+    config_dir, signoff_dir = default_signed_config()
+    full_env["C2C_CONFIG_DIR"] = str(config_dir)
+    full_env["C2C_SIGNOFF_DIR"] = str(signoff_dir)
     full_env.update(env or {})
     proc = subprocess.run(
         [sys.executable, "-m", "c2c", *args],
