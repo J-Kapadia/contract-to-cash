@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from pathlib import Path
 
-from . import db, dbt_runner, load, paths
+from . import controls, db, dbt_runner, load, paths, prov
 from .envelope import Envelope
 from .gen import generate
 
@@ -27,15 +27,24 @@ def close_month(resolved: paths.Paths, month: str, reference: str | Path = DEFAU
     ensure_fixture_books(resolved)
     first, _ = load.check_in_window(resolved.books, month)
 
+    run_id = uuid.uuid4().hex
     con = db.connect(resolved.warehouse)
     try:
         db.init_schemas(con)
-        counts = load.load_months(con, resolved.books, first, month, uuid.uuid4().hex)
+        counts = load.load_months(con, resolved.books, first, month, run_id)
         counts.update(load.load_reference(con, reference))
     finally:
         con.close()
     dbt_runner.build(resolved.warehouse)
 
+    con = db.connect(resolved.warehouse)
+    try:
+        results = controls.run(con, month, "mart", run_id)
+        prov.write_ar_closing(con, month, [r.id for r in results], run_id)
+    finally:
+        con.close()
+
     rows = sum(counts.values())
-    return Envelope(command="close", status="ok", exit=0, month=month,
-                    message=f"closed {month}: loaded {rows} rows from {len(counts)} files, dbt build passed")
+    return Envelope(command="close", status="ok", exit=0, month=month, controls=[r.summary() for r in results],
+                    message=f"closed {month}: loaded {rows} rows from {len(counts)} files, dbt build passed, "
+                            f"{len(results)} controls passed")
