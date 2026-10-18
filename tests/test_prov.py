@@ -52,7 +52,8 @@ def test_a_close_writes_one_record_per_customer_month(closed):
     for number_id, cents, unit, step, count, checks, signer in records:
         customer = number_id.split("/")[2]
         assert (cents, unit, step, signer) == (closing[customer], "cents", "fct_ar_rollforward", None)
-        assert count >= 1 and checks == ["CTL-BILL-CONTRACT", "CTL-CUTOFF", "CTL-TIE-AR"]
+        assert count >= 1 and checks == ["CTL-BILL-CONTRACT", "CTL-CUTOFF", "CTL-MASTER-ANCHOR", "CTL-MASTER-REVIEW",
+                                      "CTL-TIE-AR"]
 
 
 def test_the_digest_changes_when_a_source_row_changes(closed, tmp_path):

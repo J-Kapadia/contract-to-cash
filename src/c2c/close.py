@@ -21,6 +21,23 @@ def ensure_fixture_books(resolved: paths.Paths) -> None:
         generate("small", FIXTURE_SEED, resolved.books.parents[1])
 
 
+STALE_REVIEWS_SQL = """
+    SELECT m.a, m.b, m.decision
+    FROM raw.ref_customer_matches AS m
+    WHERE NOT EXISTS (
+        SELECT 1 FROM mart.fct_match_candidates AS c
+        WHERE list_sort([c.source_a, c.source_b]) = list_sort([m.a, m.b]))
+    ORDER BY m.a, m.b
+"""
+
+
+def stale_review_pairs(con) -> list[dict]:
+    """Reviewed pairs that no candidate pair matches any more (a variant was renamed or removed).
+
+    They do no harm, so they are reported and never fail the close."""
+    return [{"a": a, "b": b, "decision": decision} for a, b, decision in con.execute(STALE_REVIEWS_SQL).fetchall()]
+
+
 def close_month(resolved: paths.Paths, month: str, reference: str | Path = DEFAULT_REFERENCE) -> Envelope:
     """Load every month from the books' first through `month`, run dbt once, and report.
 
@@ -43,6 +60,7 @@ def close_month(resolved: paths.Paths, month: str, reference: str | Path = DEFAU
 
     con = db.connect(resolved.warehouse)
     try:
+        stale = stale_review_pairs(con)
         results = controls.run(con, month, "mart", run_id)
         prov.write_ar_closing(con, month, [r.id for r in results], run_id)
     finally:
@@ -51,4 +69,7 @@ def close_month(resolved: paths.Paths, month: str, reference: str | Path = DEFAU
     rows = sum(counts.values())
     return Envelope(command="close", status="ok", exit=0, month=month, controls=[r.summary() for r in results],
                     message=f"closed {month}: loaded {rows} rows from {len(counts)} files, dbt build passed, "
-                            f"{len(results)} controls passed")
+                            f"{len(results)} controls passed"
+                            + (f"; {len(stale)} reviewed pair(s) match no customer names any more"
+                               if stale else ""),
+                    extra={"stale_review_pairs": stale})
