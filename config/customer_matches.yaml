@@ -1,0 +1,6 @@
+# Reviewed customer matches: one decision per doubt-band pair.
+#
+# Each entry is {a, b, decision, reason}: `a` and `b` are the two source customer ids,
+# `decision` is `same` or `different`, `reason` is the reviewer's one-line reason.
+# The file is hashed for sign-off; any edit after signing must be signed again.
+pairs: []

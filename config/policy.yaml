@@ -1,0 +1,88 @@
+# Policy: every value here is a synthetic policy value, a round number the backtest measures,
+# not a benchmark. The file is hashed for sign-off; any edit after signing must be signed again.
+# Rates are integers in basis points (bps, 10000 = 100%), amounts are integer cents.
+
+# Customer matching: a pair scoring at least auto_match_min is matched automatically; a pair
+# scoring from doubt_min up to auto_match_min needs a reviewed decision. Synthetic policy value.
+auto_match_min: 60
+doubt_min: 30
+match_weights:            # points per rule fired; synthetic policy value
+  email_exact: 60
+  domain: 30
+  name_equal: 40
+  jaccard: 20
+  remittance_ref: 60
+jaccard_min_bps: 8000     # token Jaccard similarity needed for the jaccard rule; synthetic policy value
+
+# Receivables.
+aging_buckets_days: [0, 30, 60, 90]   # lower bounds of the days-past-due buckets; synthetic policy value
+dtp_window_months: 24                 # days-to-pay history window; synthetic policy value
+dtp_min_paid_invoices: 3              # paid invoices needed before a customer's own days-to-pay is used
+min_observations: 8                   # observations needed before a measured rate replaces its fallback
+at_risk_days_past_due: 120            # an invoice this late is excluded from expected cash
+
+# Pipeline.
+stale_opp_shift_days: 28              # a stale open opportunity's close date moves out by this many days
+stale_opp_weight_bps: 5000            # and its weight is multiplied by this
+cohort_window_months: 24              # renewal and expansion rates are measured over this window
+stage_win_window_months: 24           # stage win rates are measured over this window
+stage_defaults_bps:                   # stage win rate used below min_observations; synthetic policy value
+  S1: 1000
+  S2: 2000
+  S3: 4000
+  S4: 6000
+  S5: 8000
+
+# Forecast cases. Each case sets the same drivers:
+#   renewal_down_bps / renewal_up_bps   subtracted from / added to the measured renewal rate (result held to 0..10000)
+#   expansion_mult_bps                  multiplier on the measured expansion rate
+#   pipeline_weight_mult_bps            multiplier on the stage win rate (result held to 10000)
+#   pipeline_shift_days                 days added to each opportunity's close date
+#   collections_percentile              nearest-rank percentile of the customer's days to pay (50 = median)
+#   collections_cap_at_terms            1 = pay no later than the invoice terms, 0 = no cap
+#   cloud_up_bps                        added to the trailing mean of cloud and compute cost
+#   cloud_trailing_months               months in that trailing mean
+# Payroll, rent, events and vendors are as scheduled in every case. Synthetic policy values.
+cases:
+  base:
+    renewal_down_bps: 0
+    renewal_up_bps: 0
+    expansion_mult_bps: 10000
+    pipeline_weight_mult_bps: 10000
+    pipeline_shift_days: 0
+    collections_percentile: 50
+    collections_cap_at_terms: 0
+    cloud_up_bps: 0
+    cloud_trailing_months: 3
+  downside:
+    renewal_down_bps: 1000
+    renewal_up_bps: 0
+    expansion_mult_bps: 0
+    pipeline_weight_mult_bps: 5000
+    pipeline_shift_days: 30
+    collections_percentile: 80
+    collections_cap_at_terms: 0
+    cloud_up_bps: 1000
+    cloud_trailing_months: 3
+  upside:
+    renewal_down_bps: 0
+    renewal_up_bps: 500
+    expansion_mult_bps: 12500
+    pipeline_weight_mult_bps: 12500
+    pipeline_shift_days: 0
+    collections_percentile: 50
+    collections_cap_at_terms: 1
+    cloud_up_bps: 0
+    cloud_trailing_months: 3
+
+# Cash and review thresholds.
+min_cash_cents: 150000000             # minimum cash balance (USD 1.5M); below it the forecast raises an alert
+escalate_cents: 5000000               # an overdue balance this large is escalated
+escalate_days_past_due: 60            # ... once this many days past due
+renewal_review_days: 90               # renewals expiring within this many days are reviewed
+renewal_review_acv_percentile: 75     # ... when their ACV is at or above this nearest-rank percentile
+driver_review_bps: 1000               # a driver moving 13-week net cash by this share of it is reviewed
+
+# History needed.
+backtest_min_history_months: 18       # closed months before an as-of month needed to backtest it
+nrr_window_months: 12                 # net revenue retention window
