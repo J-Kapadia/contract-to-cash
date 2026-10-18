@@ -35,7 +35,8 @@ def test_a_clean_close_reports_every_mart_control_as_passing(closed, tmp_path):
     done = c2c("close", "--month", MONTH, "--books", str(closed.books), "--warehouse", str(warehouse),
                "--json")
     assert done.code == 0, done.stderr
-    assert done.json["controls"] == [{"id": "CTL-TIE-AR", "status": "pass", "violating_rows": 0}]
+    assert done.json["controls"] == [{"id": control, "status": "pass", "violating_rows": 0}
+                                     for control in ("CTL-BILL-CONTRACT", "CTL-CUTOFF", "CTL-TIE-AR")]
 
 
 def test_editing_a_gl_1200_line_fails_the_close_with_a_remediation_naming_it(closed, tmp_path):
