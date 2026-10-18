@@ -10,6 +10,7 @@ import pytest
 
 from c2c import gen
 from c2c.gen import BOOKS, TRUTH, manifest
+from c2c.gen.truth import PLANTED
 
 from conftest import c2c
 
@@ -71,7 +72,7 @@ def test_files_are_utf8_lf_sorted_and_known(written):
     preset, out = written
     books = out / "books" / preset
     assert {p.name for p in books.iterdir()} == {f"{stem}.csv" for stem in BOOKS} | {"window.json"}
-    assert {p.name for p in (out / "truth" / preset).iterdir()} == {f"{stem}.csv" for stem in TRUTH}
+    assert {p.name for p in (out / "truth" / preset).iterdir()} == {f"{stem}.csv" for stem in TRUTH} | {PLANTED}
     for stem, (columns, key) in BOOKS.items():
         raw = (books / f"{stem}.csv").read_bytes()
         assert b"\r" not in raw and raw.endswith(b"\n")
@@ -140,5 +141,5 @@ def test_full_generation_fits_the_budget(tmp_path):
     assert time.monotonic() - started <= 30
     assert gen.verify(tmp_path, "full") == {"full": []}
     assert {p.name for p in (tmp_path / "books").iterdir()} >= {"invoices.csv", "gl.csv", "window.json"}
-    assert len(built.files) == len(BOOKS) + 1 + len(TRUTH)
+    assert len(built.files) == len(BOOKS) + 1 + len(TRUTH) + 1
     assert len(read(tmp_path / "books" / "crm_accounts.csv")) == 50
