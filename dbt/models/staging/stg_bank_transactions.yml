@@ -1,0 +1,16 @@
+version: 2
+
+models:
+  - name: stg_bank_transactions
+    description: >
+      Bank statement rows, typed. Amounts are signed cents (receipts positive, payments negative);
+      the first row is the opening balance and is flagged.
+    columns:
+      - name: bank_txn_id
+        data_tests: [not_null, unique]
+      - name: posted_on
+        data_tests: [not_null]
+      - name: amount_cents
+        data_tests: [not_null]
+      - name: is_opening_balance
+        data_tests: [not_null]

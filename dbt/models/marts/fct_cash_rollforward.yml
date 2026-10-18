@@ -1,0 +1,12 @@
+version: 2
+
+models:
+  - name: fct_cash_rollforward
+    description: >
+      Cash per month. Opening + receipts - disbursements = closing; the first month opens at the
+      bank's opening-balance row.
+    columns:
+      - name: month
+        data_tests: [not_null, unique]
+      - name: closing_cents
+        data_tests: [not_null]
