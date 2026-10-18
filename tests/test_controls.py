@@ -37,8 +37,9 @@ def test_a_clean_close_reports_every_control_as_passing(closed, tmp_path):
     assert done.code == 0, done.stderr
     assert done.json["controls"] == [{"id": control, "status": "pass", "violating_rows": 0}
                                      for control in ("CTL-DUP-INVOICE", "CTL-DUP-PAYMENT", "CTL-REF-INTEGRITY",
-                                                   "CTL-BILL-CONTRACT", "CTL-CUTOFF", "CTL-MASTER-ANCHOR",
-                                                   "CTL-MASTER-REVIEW", "CTL-TIE-AR")]
+                                                   "CTL-BANK-UNMATCHED", "CTL-BILL-CONTRACT", "CTL-CASH-APP",
+                                                   "CTL-CUTOFF", "CTL-MASTER-ANCHOR", "CTL-MASTER-REVIEW",
+                                                   "CTL-TIE-AR")]
 
 
 def test_editing_a_gl_1200_line_fails_the_close_with_a_remediation_naming_it(closed, tmp_path):
