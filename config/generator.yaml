@@ -1,0 +1,98 @@
+# Generator input: every value is a synthetic generator setting. Rates are integers in basis
+# points (bps, 10000 = 100%), amounts are integer cents, months are YYYY-MM. Nothing here is
+# signed; the books manifest records this file's hash.
+
+seed: 20261014
+company: "Northwind Labs (synthetic)"
+
+presets:
+  small:
+    customers: 3
+    reps: 3
+    first_month: "2026-01"        # books window
+    last_month: "2026-03"
+    signing_first_month: "2025-12"
+    signing_span_months: 1        # signings are drawn from this many months
+    truth_first_month: null       # no truth horizon
+    truth_last_month: null
+    max_variants: 1               # name variants per customer: none
+    planted_shapes: false
+    doubt_pairs: 0
+  mini:
+    customers: 10
+    reps: 3
+    first_month: "2024-10"
+    last_month: "2026-03"
+    signing_first_month: "2024-09"
+    signing_span_months: 12
+    truth_first_month: "2026-04"
+    truth_last_month: "2026-06"
+    max_variants: 4
+    planted_shapes: true
+    doubt_pairs: 2
+    inject_month: "2026-01"       # month the planted errors land in
+    min_cash_hint_cents: 150000000   # placeholder until the cash model sizes the downside breach
+  full:
+    customers: 50
+    reps: 6
+    first_month: "2023-10"
+    last_month: "2026-09"
+    signing_first_month: "2023-09"
+    signing_span_months: 24
+    truth_first_month: "2026-10"
+    truth_last_month: "2027-09"
+    max_variants: 4
+    planted_shapes: true
+    doubt_pairs: 15
+
+# Customer size: weight in the draw, and the annual contract value range. The value is a
+# multiple of acv_step_cents.
+acv_step_cents: 100000
+size_bands:
+  smb:   {weight: 25, acv_min_cents: 4000000,  acv_max_cents: 9000000}
+  mid:   {weight: 50, acv_min_cents: 9000000,  acv_max_cents: 25000000}
+  large: {weight: 25, acv_min_cents: 25000000, acv_max_cents: 60000000}
+
+# Mixes: relative weights of each choice.
+term_months_mix: {12: 60, 24: 30, 36: 10}
+billing_frequency_mix: {annual: 65, quarterly: 35}
+payment_terms_mix: {30: 40, 45: 35, 60: 25}
+
+# Signing weight by calendar quarter: renewals and new contracts cluster in Q4 and Q1.
+signing_weights: {1: 30, 2: 10, 3: 12, 4: 48}
+
+# At each term end: churn chance, then expansion chance and size, by renewal number.
+churn_bps: {first: 1500, later: 1000}
+expansion_bps: {first: 3000, later: 2500}
+expansion_uplift_bps: {min: 500, max: 3000}
+
+# Days-to-pay behaviour: a customer's median is its payment terms plus an offset; payments
+# scatter around the median by the spread, and a share arrive late by an extra amount.
+dtp_behaviour:
+  median_offset_days: {min: -5, max: 25}
+  spread_days: {min: 2, max: 12}
+  late_share_bps: {min: 0, max: 2000}
+  late_extra_days: {min: 15, max: 45}
+
+# Operating costs. Hires are net new heads from the month on; a payroll run costs
+# headcount times cost_per_head_per_run_cents.
+headcount:
+  opening: 14
+  cost_per_head_per_run_cents: 420000
+  hires:
+    - {month: "2024-01", delta: 2}
+    - {month: "2024-07", delta: 2}
+    - {month: "2025-01", delta: 3}
+    - {month: "2025-07", delta: 2}
+    - {month: "2026-01", delta: 3}
+    - {month: "2026-07", delta: 2}
+    - {month: "2027-01", delta: 2}
+
+# Vendors: a bill of amount_cents each cadence, due payment_days after the bill date.
+# Annual bills fall in bill_month (1..12).
+vendors:
+  - {name: "Cirrus Compute (synthetic)", category: cloud, cadence: monthly, amount_cents: 6500000, payment_days: 30}
+  - {name: "Pinewood Offices (synthetic)", category: rent, cadence: monthly, amount_cents: 1800000, payment_days: 5}
+  - {name: "Fieldnote Software (synthetic)", category: software, cadence: annual, bill_month: 2, amount_cents: 9600000, payment_days: 30}
+  - {name: "Harbor Legal (synthetic)", category: vendor, cadence: quarterly, amount_cents: 1500000, payment_days: 30}
+  - {name: "Summit Events (synthetic)", category: events, cadence: annual, bill_month: 10, amount_cents: 4200000, payment_days: 45}

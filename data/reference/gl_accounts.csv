@@ -1,0 +1,13 @@
+gl_account,name,kind
+1000,Cash,asset
+1200,Accounts receivable,asset
+2400,Deferred revenue,liability
+3000,Equity,equity
+4000,Subscription revenue,revenue
+4100,Usage revenue,revenue
+6000,Payroll,expense
+6100,Commissions,expense
+6200,Cloud and compute,expense
+6300,Vendors and software,expense
+6400,Events,expense
+6500,Rent,expense
