@@ -1,0 +1,11 @@
+billing_customer_id,bill_to_name,bill_to_email,crm_account_ref,known_on
+bill_0001,Bramble Robotics Inc.,katya.janssen@bramblerobotics.example,acct_0001,2025-01-01
+bill_0002,Briar Mobility Corp,ada.hartmann@briarmobility.example,acct_0002,2024-11-01
+bill_0003,Reed Shipping Ltd,accounts.payable@reedrail.example,,2025-07-01
+bill_0004,Dawn Brewing LLC,jonas.almeida@dawnbrewing.example,acct_0004,2024-11-01
+bill_0005,Vale Apparel Ltd,farid.castillo@valeapparel.example,acct_0005,2024-12-01
+bill_0006,Sable Semiconductors Inc,bruno.janssen@sablesemiconductors.example,,2025-01-01
+bill_0007,Reed Rail LLC,farid.gallagher0007@aol.com,,2024-12-01
+bill_0008,Aspen Packaging LLC,jonas.ito@aspenpackaging.example,acct_0008,2025-03-01
+bill_0009,Umber Publshing Corp,accounts@umberpublishing.example,,2025-02-01
+bill_0010,Pine Fabrics Ltd,bruno.brandt@pinefabrics.example,,2025-03-01

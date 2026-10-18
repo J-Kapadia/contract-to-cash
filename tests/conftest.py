@@ -23,6 +23,12 @@ settings.load_profile("c2c")
 
 ROOT = Path(__file__).resolve().parents[1]
 
+# The committed `mini` preset: its books, its answer key and the books' first and last month.
+# Read-only for the tests; `mini_books_copy` gives one that may be changed.
+MINI_BOOKS = ROOT / "tests" / "fixtures" / "books"
+MINI_TRUTH = ROOT / "tests" / "fixtures" / "truth"
+MINI_WINDOW = ("2024-10", "2026-03")
+
 # The configuration the commands read when a test names none; it is signed into a scratch directory
 # once per process. Point it at the reviewed fixture configuration once that exists.
 DEFAULT_CONFIG = ROOT / "config"
@@ -198,6 +204,15 @@ class Workspace:
 
     def run(self, *args: str, env: dict | None = None) -> Result:
         return c2c(*args, *self.flags(), env=env)
+
+
+@pytest.fixture
+def mini_books_copy(tmp_path) -> Path:
+    """A private copy of the committed `mini` books, for a test that edits them: `books/` under a
+    fresh directory, which is the parent of the returned path."""
+    books = tmp_path / "books"
+    shutil.copytree(MINI_BOOKS, books)
+    return books
 
 
 @pytest.fixture

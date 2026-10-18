@@ -1,0 +1,11 @@
+customer_id,median_days,spread_days,late_share_bps,late_extra_days
+acct_0001,40,9,1467,23
+acct_0002,34,2,1658,26
+acct_0003,68,2,1409,16
+acct_0004,60,10,1906,40
+acct_0005,63,5,564,43
+acct_0006,42,11,1375,32
+acct_0007,45,11,1496,32
+acct_0008,38,9,1742,26
+acct_0009,64,10,1655,45
+acct_0010,36,9,925,31

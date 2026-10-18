@@ -1,0 +1,61 @@
+source_system,source_id,true_customer_id
+bank_name,Aspen Packaging LLC,acct_0008
+bank_name,Bramble Robotics Limited,acct_0001
+bank_name,Briar Mobility Corp,acct_0002
+bank_name,Dawn Brewing LLC,acct_0004
+bank_name,Pine Fabrics Corporation,acct_0010
+bank_name,Reed Rail LLC,acct_0007
+bank_name,Reed Shipping Ltd,acct_0003
+bank_name,Sable Semiconductors LLC,acct_0006
+bank_name,Umber Publishing Corp.,acct_0009
+bank_name,Vale Apparel Ltd,acct_0005
+billing,bill_0001,acct_0001
+billing,bill_0002,acct_0002
+billing,bill_0003,acct_0003
+billing,bill_0004,acct_0004
+billing,bill_0005,acct_0005
+billing,bill_0006,acct_0006
+billing,bill_0007,acct_0007
+billing,bill_0008,acct_0008
+billing,bill_0009,acct_0009
+billing,bill_0010,acct_0010
+billing_name,Aspen Packaging LLC,acct_0008
+billing_name,Bramble Robotics Inc.,acct_0001
+billing_name,Briar Mobility Corp,acct_0002
+billing_name,Dawn Brewing LLC,acct_0004
+billing_name,Pine Fabrics Ltd,acct_0010
+billing_name,Reed Rail LLC,acct_0007
+billing_name,Reed Shipping Ltd,acct_0003
+billing_name,Sable Semiconductors Inc,acct_0006
+billing_name,Umber Publshing Corp,acct_0009
+billing_name,Vale Apparel Ltd,acct_0005
+crm,acct_0001,acct_0001
+crm,acct_0002,acct_0002
+crm,acct_0003,acct_0003
+crm,acct_0004,acct_0004
+crm,acct_0005,acct_0005
+crm,acct_0006,acct_0006
+crm,acct_0007,acct_0007
+crm,acct_0008,acct_0008
+crm,acct_0009,acct_0009
+crm,acct_0010,acct_0010
+crm_name,Aspen Packaging LLC,acct_0008
+crm_name,Bramble Robotics Inc,acct_0001
+crm_name,Briar Mobility Corp,acct_0002
+crm_name,Dawn Brewing LLC,acct_0004
+crm_name,Pine Fabrics Ltd,acct_0010
+crm_name,Reed Rail LLC,acct_0007
+crm_name,Reed Shipping Ltd,acct_0003
+crm_name,Sable Semiconductors LLC,acct_0006
+crm_name,Umber Publishing Corp,acct_0009
+crm_name,Vale Apparel Ltd,acct_0005
+gl_name,Aspen Packaging Incorporated,acct_0008
+gl_name,Bramble Robotics Corp,acct_0001
+gl_name,Briar Mobility Corp,acct_0002
+gl_name,Dawn Brewing LLC,acct_0004
+gl_name,"Pine Fabrics, Ltd.",acct_0010
+gl_name,Reed Rail Co.,acct_0007
+gl_name,Reed Shipping Co.,acct_0003
+gl_name,Sable Semiconductors Limited,acct_0006
+gl_name,Umber Publishing Corp,acct_0009
+gl_name,"Vale Apparel, Ltd",acct_0005

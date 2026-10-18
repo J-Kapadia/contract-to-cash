@@ -1,0 +1,11 @@
+crm_account_id,account_name,website_domain,owner_rep_id,created_on,known_on
+acct_0001,Bramble Robotics Inc,bramblerobotics.example,rep_03,2024-11-15,2024-11-15
+acct_0002,Briar Mobility Corp,briarmobility.example,rep_02,2024-09-16,2024-09-16
+acct_0003,Reed Shipping Ltd,reedshipping.example,rep_03,2025-05-13,2025-05-13
+acct_0004,Dawn Brewing LLC,dawnbrewing.example,rep_02,2024-09-09,2024-09-09
+acct_0005,Vale Apparel Ltd,valeapparel.example,rep_02,2024-10-07,2024-10-07
+acct_0006,Sable Semiconductors LLC,sablesemiconductors.example,rep_01,2024-11-22,2024-11-22
+acct_0007,Reed Rail LLC,reedrail.example,rep_03,2024-10-10,2024-10-10
+acct_0008,Aspen Packaging LLC,aspenpackaging.example,rep_01,2025-01-03,2025-01-03
+acct_0009,Umber Publishing Corp,umberpublishing.example,rep_02,2024-12-07,2024-12-07
+acct_0010,Pine Fabrics Ltd,pinefabrics.example,rep_01,2025-01-11,2025-01-11

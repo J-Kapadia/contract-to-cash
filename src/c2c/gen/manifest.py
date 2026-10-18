@@ -1,11 +1,12 @@
 """The books manifest: a SHA-256 for every generated file, and the check against drift.
 
-The full books live directly in `<out>/books/` and `<out>/truth/` with their manifest at
-`<out>/books.manifest.sha256`; every other preset has its own subdirectory of each and its
+The full books and the committed `mini` preset live directly in `<out>/books/` and
+`<out>/truth/` with their manifest at `<out>/books.manifest.sha256` (the first line of the
+manifest says which preset it is); every other preset has its own subdirectory of each and its
 manifest at `<out>/books/<preset>.manifest.sha256`. The manifest has header lines `# seed: N`,
 `# preset: NAME`, `# generator_sha256: HEX`, `# config_sha256: HEX`, then one `HEX  relative/path`
 line per file, sorted by path. Paths are relative to `<out>` and use `/`. A directory's manifest
-covers the files directly in it, so the full books' manifest never lists another preset's files.
+covers the files directly in it, so a flat manifest never lists another preset's files.
 """
 
 from __future__ import annotations
@@ -15,6 +16,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 FULL = "full"
+MINI = "mini"
+FLAT = (FULL, MINI)  # presets laid out directly under books/ and truth/
 HEADER_KEYS = ("seed", "preset", "generator_sha256", "config_sha256")
 
 
@@ -33,7 +36,7 @@ class Manifest:
 
 
 def manifest_path(out: Path, preset: str) -> Path:
-    if preset == FULL:
+    if preset in FLAT:
         return out / "books.manifest.sha256"
     return out / "books" / f"{preset}.manifest.sha256"
 
@@ -42,13 +45,13 @@ def presets_under(out: Path) -> list[str]:
     """The presets that have a manifest under `out`."""
     found = [p.name.removesuffix(".manifest.sha256") for p in (out / "books").glob("*.manifest.sha256")]
     if (out / "books.manifest.sha256").is_file():
-        found.append(FULL)
+        found.append(read(out / "books.manifest.sha256").preset)
     return sorted(found)
 
 
 def preset_dirs(out: Path, preset: str) -> list[Path]:
     """The directories whose files the manifest covers."""
-    if preset == FULL:
+    if preset in FLAT:
         return [out / "books", out / "truth"]
     return [out / "books" / preset, out / "truth" / preset]
 

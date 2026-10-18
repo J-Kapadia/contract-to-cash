@@ -1,0 +1,26 @@
+commitment_id,vendor_name,category,due_date,amount_cents,known_on
+cmt_000001,Pinewood Offices (synthetic),rent,2024-10-06,1800000,2024-10-01
+cmt_000002,Pinewood Offices (synthetic),rent,2024-11-06,1800000,2024-10-01
+cmt_000003,Summit Events (synthetic),events,2024-11-15,4200000,2024-10-01
+cmt_000004,Pinewood Offices (synthetic),rent,2024-12-06,1800000,2024-10-01
+cmt_000005,Pinewood Offices (synthetic),rent,2025-01-06,1800000,2024-10-01
+cmt_000006,Pinewood Offices (synthetic),rent,2025-02-06,1800000,2024-11-01
+cmt_000007,Fieldnote Software (synthetic),software,2025-03-03,9600000,2024-11-01
+cmt_000008,Pinewood Offices (synthetic),rent,2025-03-06,1800000,2024-12-01
+cmt_000009,Pinewood Offices (synthetic),rent,2025-04-06,1800000,2025-01-01
+cmt_000010,Pinewood Offices (synthetic),rent,2025-05-06,1800000,2025-02-01
+cmt_000011,Pinewood Offices (synthetic),rent,2025-06-06,1800000,2025-03-01
+cmt_000012,Pinewood Offices (synthetic),rent,2025-07-06,1800000,2025-04-01
+cmt_000013,Pinewood Offices (synthetic),rent,2025-08-06,1800000,2025-05-01
+cmt_000014,Pinewood Offices (synthetic),rent,2025-09-06,1800000,2025-06-01
+cmt_000015,Pinewood Offices (synthetic),rent,2025-10-06,1800000,2025-07-01
+cmt_000016,Pinewood Offices (synthetic),rent,2025-11-06,1800000,2025-08-01
+cmt_000017,Summit Events (synthetic),events,2025-11-15,4200000,2025-07-01
+cmt_000018,Pinewood Offices (synthetic),rent,2025-12-06,1800000,2025-09-01
+cmt_000019,Pinewood Offices (synthetic),rent,2026-01-06,1800000,2025-10-01
+cmt_000020,Pinewood Offices (synthetic),rent,2026-02-06,1800000,2025-11-01
+cmt_000021,Fieldnote Software (synthetic),software,2026-03-03,9600000,2025-11-01
+cmt_000022,Pinewood Offices (synthetic),rent,2026-03-06,1800000,2025-12-01
+cmt_000023,Pinewood Offices (synthetic),rent,2026-04-06,1800000,2026-01-01
+cmt_000024,Pinewood Offices (synthetic),rent,2026-05-06,1800000,2026-02-01
+cmt_000025,Pinewood Offices (synthetic),rent,2026-06-06,1800000,2026-03-01

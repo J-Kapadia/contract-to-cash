@@ -1,0 +1,65 @@
+{
+  "errors": {
+    "defrev_gl_slip": {
+      "customer": "acct_0002",
+      "key": {
+        "entry_id": "je_000366",
+        "line_no": 1
+      },
+      "month": "2026-01",
+      "table": "gl"
+    },
+    "duplicate_customer": {
+      "customer": "acct_0003",
+      "key": {
+        "billing_customer_id": "bill_0003"
+      },
+      "month": "2026-01",
+      "table": "billing_customers"
+    },
+    "misapplied_payment": {
+      "customer": "acct_0007",
+      "key": {
+        "payment_id": "pay_000073"
+      },
+      "month": "2026-01",
+      "table": "payments"
+    },
+    "orphan_bank_txn": {
+      "customer": "acct_0007",
+      "key": {
+        "bank_txn_id": "bk_000073"
+      },
+      "month": "2026-01",
+      "table": "bank_transactions"
+    },
+    "rounding_slip": {
+      "customer": "acct_0009",
+      "key": {
+        "entry_id": "je_000350",
+        "line_no": 2
+      },
+      "month": "2026-01",
+      "table": "gl"
+    },
+    "unbilled_amendment": {
+      "customer": "acct_0010",
+      "key": {
+        "contract_id": "ctr_0010_00"
+      },
+      "month": "2026-01",
+      "table": "contracts"
+    },
+    "wrong_period": {
+      "customer": "acct_0006",
+      "key": {
+        "invoice_id": "inv_000081"
+      },
+      "month": "2026-01",
+      "table": "invoices"
+    }
+  },
+  "inject_month": "2026-01",
+  "preset": "mini",
+  "seed": 1
+}

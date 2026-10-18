@@ -38,7 +38,7 @@ def months(first, last):
 def mini(tmp_path_factory):
     out = tmp_path_factory.mktemp("mini")
     gen.generate("mini", SEED, out)
-    books, truth = out / "books" / "mini", out / "truth" / "mini"
+    books, truth = out / "books", out / "truth"
     return (
         {p.stem: read(p) for p in books.glob("*.csv")},
         {p.stem: read(p) for p in truth.glob("*.csv")},
@@ -48,10 +48,13 @@ def mini(tmp_path_factory):
 
 def test_every_truth_file_is_written(tmp_path):
     for preset in ("small", "mini"):
-        gen.generate(preset, SEED, tmp_path)
-        assert {p.name for p in (tmp_path / "truth" / preset).iterdir()} == {f"{s}.csv" for s in FILES} | {PLANTED}
-        assert set(gen.manifest.read(gen.manifest.manifest_path(tmp_path, preset)).files) >= {
-            f"truth/{preset}/{s}.csv" for s in FILES} | {f"truth/{preset}/{PLANTED}"}
+        out = tmp_path / preset
+        gen.generate(preset, SEED, out)
+        truth_dir = gen.manifest.preset_dirs(out, preset)[1]
+        truth_prefix = truth_dir.relative_to(out).as_posix()
+        assert {p.name for p in truth_dir.iterdir()} == {f"{s}.csv" for s in FILES} | {PLANTED}
+        assert set(gen.manifest.read(gen.manifest.manifest_path(out, preset)).files) >= {
+            f"{truth_prefix}/{s}.csv" for s in FILES} | {f"{truth_prefix}/{PLANTED}"}
 
 
 def test_the_ledger_equals_the_expected_rollforward_every_month(mini):
@@ -199,7 +202,7 @@ def test_the_books_do_not_depend_on_the_horizon(tmp_path):
     config["presets"]["mini"]["truth_first_month"] = config["presets"]["mini"]["truth_last_month"] = None
     plan = gen.build_plan("mini", config, SEED)
     books, _ = gen._stages(plan)
-    assert len(books["invoices"]) == len(read(tmp_path / "a" / "books" / "mini" / "invoices.csv"))
+    assert len(books["invoices"]) == len(read(tmp_path / "a" / "books" / "invoices.csv"))
     assert gen._future(plan, books) == {"invoices": [], "bank_transactions": []}
 
 
@@ -228,7 +231,7 @@ def test_a_preset_without_a_horizon_has_empty_future_files(tmp_path):
 def test_truth_is_byte_identical_across_runs(tmp_path):
     gen.generate("mini", SEED, tmp_path / "a")
     gen.generate("mini", SEED, tmp_path / "b")
-    names = {p.name for p in (tmp_path / "a" / "truth" / "mini").iterdir()}
+    names = {p.name for p in (tmp_path / "a" / "truth").iterdir()}
     assert names
     for name in names:
-        assert (tmp_path / "a" / "truth" / "mini" / name).read_bytes() == (tmp_path / "b" / "truth" / "mini" / name).read_bytes()
+        assert (tmp_path / "a" / "truth" / name).read_bytes() == (tmp_path / "b" / "truth" / name).read_bytes()

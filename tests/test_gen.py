@@ -22,6 +22,12 @@ def read(path):
         return list(csv.DictReader(fh))
 
 
+def rel(preset, *parts):
+    """A path in the manifest's spelling: `books/` and `truth/` are flat for `mini`, nested otherwise."""
+    head, *rest = parts
+    return "/".join([head, *([] if preset in manifest.FLAT else [preset]), *rest])
+
+
 def tree(root):
     return {p.relative_to(root).as_posix(): p.read_bytes() for p in sorted(root.rglob("*")) if p.is_file()}
 
@@ -42,6 +48,13 @@ def test_two_generations_are_byte_identical(preset, tmp_path):
     assert any(name.startswith("books/") for name in first) and any(name.startswith("truth/") for name in first)
 
 
+def test_a_preset_and_the_full_books_cannot_share_a_flat_directory(tmp_path):
+    gen.generate("mini", SEED, tmp_path)
+    assert manifest.presets_under(tmp_path) == ["mini"]
+    with pytest.raises(FileNotFoundError):
+        gen.verify(tmp_path, "full")
+
+
 def test_a_different_seed_gives_different_books(tmp_path):
     gen.generate("mini", 1, tmp_path / "a")
     gen.generate("mini", 2, tmp_path / "b")
@@ -53,14 +66,16 @@ def test_the_manifest_verifies_and_catches_drift(written, tmp_path):
     assert gen.verify(out, preset) == {preset: []}
     header = manifest.read(manifest.manifest_path(out, preset))
     assert (header.preset, header.seed) == (preset, SEED)
-    assert set(header.files) == set(tree(out)) - {f"books/{preset}.manifest.sha256"}
+    own_manifest = manifest.manifest_path(out, preset).relative_to(out).as_posix()
+    assert set(header.files) == set(tree(out)) - {own_manifest}
 
     copy = tmp_path / "copy"
     gen.generate(preset, SEED, copy)
-    target = copy / "books" / preset / "invoices.csv"
+    books_dir, truth_dir = manifest.preset_dirs(copy, preset)
+    target = books_dir / "invoices.csv"
     target.write_bytes(target.read_bytes() + b"x\n")
-    (copy / "truth" / preset / "stray.csv").write_text("a\n", encoding="utf-8")
-    assert gen.verify(copy, preset)[preset] == [f"books/{preset}/invoices.csv", f"truth/{preset}/stray.csv"]
+    (truth_dir / "stray.csv").write_text("a\n", encoding="utf-8")
+    assert gen.verify(copy, preset)[preset] == [rel(preset, "books", "invoices.csv"), rel(preset, "truth", "stray.csv")]
 
 
 def test_verify_without_a_manifest_is_an_error(tmp_path):
@@ -70,9 +85,9 @@ def test_verify_without_a_manifest_is_an_error(tmp_path):
 
 def test_files_are_utf8_lf_sorted_and_known(written):
     preset, out = written
-    books = out / "books" / preset
+    books, truth_dir = manifest.preset_dirs(out, preset)
     assert {p.name for p in books.iterdir()} == {f"{stem}.csv" for stem in BOOKS} | {"window.json"}
-    assert {p.name for p in (out / "truth" / preset).iterdir()} == {f"{stem}.csv" for stem in TRUTH} | {PLANTED}
+    assert {p.name for p in truth_dir.iterdir()} == {f"{stem}.csv" for stem in TRUTH} | {PLANTED}
     for stem, (columns, key) in BOOKS.items():
         raw = (books / f"{stem}.csv").read_bytes()
         assert b"\r" not in raw and raw.endswith(b"\n")
@@ -87,13 +102,14 @@ def test_files_are_utf8_lf_sorted_and_known(written):
 
 def test_the_ledger_balances_and_recognises_revenue(written):
     preset, out = written
-    rows = read(out / "books" / preset / "gl.csv")
+    books_dir, _ = manifest.preset_dirs(out, preset)
+    rows = read(books_dir / "gl.csv")
     by_entry = {}
     for row in rows:
         by_entry[row["entry_id"]] = by_entry.get(row["entry_id"], 0) + int(row["amount_cents"])
     assert set(by_entry.values()) == {0}
     assert any(row["gl_account"] == "4000" for row in rows)
-    window = json.loads((out / "books" / preset / "window.json").read_text(encoding="utf-8"))
+    window = json.loads((books_dir / "window.json").read_text(encoding="utf-8"))
     assert {row["gl_period"] for row in rows} <= {m for m in manifest_months(window)} | {"2025-12"}
 
 
@@ -128,10 +144,16 @@ def test_small_still_closes_with_the_receivable_tied(tmp_path):
 
 def test_gen_verify_fails_on_drift_through_the_cli(tmp_path):
     assert c2c("gen", "--fixture", "mini", "--out", str(tmp_path)).code == 0
-    (tmp_path / "books" / "mini" / "gl.csv").write_text("changed\n", encoding="utf-8")
+    (tmp_path / "books" / "gl.csv").write_text("changed\n", encoding="utf-8")
     result = c2c("gen", "--verify", "--fixture", "mini", "--out", str(tmp_path), "--json")
     assert result.code == 3
-    assert result.json["failed_checks"][0]["drifted_files"] == ["books/mini/gl.csv"]
+    assert result.json["failed_checks"][0]["drifted_files"] == ["books/gl.csv"]
+
+
+def test_mini_defaults_to_the_committed_fixtures():
+    result = c2c("gen", "--verify", "--fixture", "mini", "--json")
+    assert result.code == 0, result.stderr
+    assert result.json["preset"] == "mini"
 
 
 @pytest.mark.slow

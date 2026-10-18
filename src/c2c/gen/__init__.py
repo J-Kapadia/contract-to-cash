@@ -4,8 +4,9 @@
 contracts, billing, cash, pipeline, operating costs, ledger) and writes the books, the
 answer key and the manifest; `verify(out)` lists the files that no longer match a manifest.
 
-Where the files go: the `full` preset writes `<out>/books/` and `<out>/truth/` with its
-manifest at `<out>/books.manifest.sha256`; any other preset writes `<out>/books/<preset>/`,
+Where the files go: the `full` and `mini` presets write `<out>/books/` and `<out>/truth/` with
+their manifest at `<out>/books.manifest.sha256` (`mini` is the preset committed under
+`tests/fixtures/`, one preset to a directory); any other preset writes `<out>/books/<preset>/`,
 `<out>/truth/<preset>/` and `<out>/books/<preset>.manifest.sha256` (see `manifest`).
 
 Every books file is UTF-8 with LF line endings, one header row, rows sorted by the file's key
@@ -223,5 +224,7 @@ def verify(out: str | Path, preset: str | None = None) -> dict[str, list[str]]:
         path = manifest.manifest_path(out, name)
         if not path.is_file():
             raise FileNotFoundError(f"no books manifest at {path}")
+        if name in manifest.FLAT and (recorded := manifest.read(path).preset) != name:
+            raise FileNotFoundError(f"{path} is the manifest of the {recorded} preset, not {name}")
         result[name] = manifest.drift(out, name)
     return result
