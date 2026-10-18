@@ -1,0 +1,13 @@
+# The warehouse path comes from `c2c`, which sets C2C_WAREHOUSE for the dbt subprocess.
+# One thread keeps every run deterministic.
+c2c:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "{{ env_var('C2C_WAREHOUSE') }}"
+      threads: 1
+      # The same memory cap as every connection `c2c` opens (default 2GB): DuckDB would
+      # otherwise take 80% of the machine's memory for this one run.
+      settings:
+        memory_limit: "{{ env_var('C2C_DUCKDB_MEMORY_LIMIT', '2GB') }}"
