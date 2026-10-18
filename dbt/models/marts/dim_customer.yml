@@ -1,0 +1,22 @@
+version: 2
+
+models:
+  - name: dim_customer
+    description: >
+      The customer master, one row per cluster of name variants that holds a CRM account or a billing customer (a cluster of only bank and ledger names is a payee that is no customer). customer_id is the cluster's CRM
+      account id and is NULL for a cluster with no CRM account or with several; display_name is that
+      account's name. member_count counts the cluster's variants across the four systems.
+      review_state is pending (a doubt-band pair without a decision), reviewed (merged by a
+      reviewed same) or auto.
+    columns:
+      - name: customer_id
+        data_tests:
+          - unique
+      - name: member_count
+        data_tests: [not_null]
+      - name: review_state
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [auto, reviewed, pending]

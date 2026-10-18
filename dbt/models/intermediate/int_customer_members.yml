@@ -1,0 +1,13 @@
+version: 2
+
+models:
+  - name: int_customer_members
+    description: >
+      Every customer-name variant with the customer id of its cluster, for joins from billing,
+      ledger names and bank counterparties. customer_id is NULL when the cluster has no CRM account
+      or several. One row per variant.
+    columns:
+      - name: source_system
+        data_tests: [not_null]
+      - name: source_id
+        data_tests: [not_null]

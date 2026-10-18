@@ -1,0 +1,15 @@
+version: 2
+
+models:
+  - name: int_match_clusters
+    description: >
+      Every customer-name variant (a system and an id) with its cluster. A cluster is a connected
+      component of the pairs whose decision is auto or same, and is named by its smallest member key
+      (system and id joined by the unit separator). Each variant is in exactly one cluster.
+    columns:
+      - name: source_system
+        data_tests: [not_null]
+      - name: source_id
+        data_tests: [not_null]
+      - name: cluster_id
+        data_tests: [not_null]
