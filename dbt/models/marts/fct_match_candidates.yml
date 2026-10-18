@@ -1,0 +1,27 @@
+version: 2
+
+models:
+  - name: fct_match_candidates
+    description: >
+      Every blocked pair of customer-name variants (each a system and an id) with its integer score and the rules that
+      fired (the evidence). Weights and thresholds are the policy configuration's. decision is
+      auto at or above auto_match_min, the reviewed decision (same or different) from doubt_min
+      up to it, and none below; a doubt-band pair nobody has reviewed yet has no decision.
+    columns:
+      - name: system_a
+        data_tests: [not_null]
+      - name: source_a
+        data_tests: [not_null]
+      - name: system_b
+        data_tests: [not_null]
+      - name: source_b
+        data_tests: [not_null]
+      - name: score
+        data_tests: [not_null]
+      - name: rules_fired
+        data_tests: [not_null]
+      - name: decision
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [auto, same, different, none]

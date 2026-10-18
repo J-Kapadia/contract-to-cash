@@ -7,12 +7,14 @@ by the unit separator, computed once in SQL), `_month` (the month the row belong
 
 from __future__ import annotations
 
+import dataclasses
 import json
 import re
 from pathlib import Path
 
 import duckdb
 
+from . import policy as policy_config
 from .errors import PreconditionError, UsageError
 
 # File stem -> the column whose first seven characters (`YYYY-MM`) are the row's month. Rows
@@ -121,3 +123,35 @@ def load_reference(con: duckdb.DuckDBPyConnection, directory: str | Path) -> dic
     for path in sorted(directory.glob("*.csv")):
         counts[f"ref_{path.stem}"] = _load_file(con, path, f"raw.ref_{path.stem}", "")
     return counts
+
+
+def _flatten(prefix: str, value: object) -> list[tuple[str, int]]:
+    """The integers under `value` as `(dotted key, value)`; a list item's key ends in its position."""
+    if dataclasses.is_dataclass(value):
+        value = dataclasses.asdict(value)
+    if isinstance(value, dict):
+        return [item for k, v in value.items() for item in _flatten(f"{prefix}.{k}" if prefix else k, v)]
+    if isinstance(value, (list, tuple)):
+        return [item for i, v in enumerate(value) for item in _flatten(f"{prefix}.{i}", v)]
+    return [(prefix, value)]
+
+
+def load_config(con: duckdb.DuckDBPyConnection, config_dir: str | Path) -> dict[str, int]:
+    """Load the checked configuration into the warehouse so SQL reads one source: `raw.ref_policy`
+    (`key`, `value`: every policy value under its dotted key, such as `match_weights.email_exact`)
+    and `raw.ref_customer_matches` (`a`, `b`, `decision`, `reason`, `_row_hash`). Both tables are
+    rebuilt each time; returns the row count of each."""
+    policy = policy_config.load(config_dir)
+    matches = policy_config.load_matches(config_dir)
+    con.execute("CREATE SCHEMA IF NOT EXISTS raw")
+    con.execute("CREATE OR REPLACE TABLE raw.ref_policy (key VARCHAR, value BIGINT)")
+    con.executemany("INSERT INTO raw.ref_policy VALUES (?, ?)", _flatten("", policy))
+    con.execute("CREATE OR REPLACE TEMPORARY TABLE _matches (a VARCHAR, b VARCHAR, decision VARCHAR, reason VARCHAR)")
+    for m in matches:
+        con.execute("INSERT INTO _matches VALUES (?, ?, ?, ?)", [m.a, m.b, m.decision, m.reason])
+    con.execute(
+        "CREATE OR REPLACE TABLE raw.ref_customer_matches AS "
+        "SELECT *, sha256(concat_ws(chr(31), a, b, decision, reason)) AS _row_hash FROM _matches")
+    con.execute("DROP TABLE _matches")
+    return {table: con.execute(f"SELECT count(*) FROM raw.{table}").fetchone()[0]
+            for table in ("ref_policy", "ref_customer_matches")}

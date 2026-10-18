@@ -36,6 +36,7 @@ def close_month(resolved: paths.Paths, month: str, reference: str | Path = DEFAU
         db.init_schemas(con)
         counts = load.load_months(con, resolved.books, first, month, run_id)
         counts.update(load.load_reference(con, reference))
+        counts.update(load.load_config(con, resolved.config))
     finally:
         con.close()
     dbt_runner.build(resolved.warehouse)
