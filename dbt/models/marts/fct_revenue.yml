@@ -1,0 +1,19 @@
+version: 2
+
+models:
+  - name: fct_revenue
+    description: >
+      Recognised revenue per customer, month and line type. Subscription and credit lines are
+      recognised by day through ratable_cents(); overage is recognised in the usage month.
+    columns:
+      - name: month
+        data_tests: [not_null]
+      - name: customer_id
+        data_tests: [not_null]
+      - name: line_type
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [subscription, overage, credit]
+      - name: recognised_cents
+        data_tests: [not_null]
