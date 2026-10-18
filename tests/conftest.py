@@ -171,3 +171,31 @@ class Workspace:
 def workspace(tmp_path) -> Workspace:
     """A private books directory and warehouse path for a test that runs commands."""
     return Workspace(tmp_path)
+
+
+# ------------------------------------------------------------------ a closed month
+
+CLOSED_MONTH = "2026-03"
+
+
+@dataclass
+class Closed:
+    books: Path
+    warehouse: Path
+
+
+@pytest.fixture(scope="session")
+def closed(tmp_path_factory) -> Closed:
+    """The `small` books generated and 2026-03 closed once for the whole run, however many xdist
+    workers there are. Read-only for the tests: one that changes the warehouse closes its own."""
+
+    def build(root: Path) -> None:
+        gen = c2c("gen", "--fixture", "small", "--out", str(root / "data"))
+        assert gen.code == 0, gen.stderr
+        books = root / "data" / "books" / "small"
+        done = c2c("close", "--month", CLOSED_MONTH, "--books", str(books),
+                   "--warehouse", str(root / "w.duckdb"), "--json")
+        assert done.code == 0, done.stderr
+
+    root = shared_dir(tmp_path_factory, "closed-small", build)
+    return Closed(books=root / "data" / "books" / "small", warehouse=root / "w.duckdb")

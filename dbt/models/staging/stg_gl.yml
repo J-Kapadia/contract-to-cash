@@ -1,0 +1,12 @@
+version: 2
+
+models:
+  - name: stg_gl
+    description: General ledger lines, typed. Amounts are signed cents, debit positive.
+    columns:
+      - name: entry_id
+        data_tests: [not_null]
+      - name: gl_account
+        data_tests: [not_null]
+      - name: amount_cents
+        data_tests: [not_null]

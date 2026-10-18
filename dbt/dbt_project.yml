@@ -1,0 +1,18 @@
+name: c2c
+version: "0.1.0"
+config-version: 2
+profile: c2c
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+
+models:
+  c2c:
+    +materialized: table
+    staging:
+      +schema: int
+    intermediate:
+      +schema: int
+    marts:
+      +schema: mart

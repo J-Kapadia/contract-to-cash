@@ -1,0 +1,17 @@
+version: 2
+
+models:
+  - name: stg_invoices
+    description: Invoice lines, typed. One row per invoice line; amounts are signed cents.
+    columns:
+      - name: invoice_id
+        data_tests: [not_null]
+      - name: line_no
+        data_tests: [not_null]
+      - name: line_type
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [subscription, overage, credit]
+      - name: amount_cents
+        data_tests: [not_null]

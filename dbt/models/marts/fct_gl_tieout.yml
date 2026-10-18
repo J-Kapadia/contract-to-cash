@@ -1,0 +1,12 @@
+version: 2
+
+models:
+  - name: fct_gl_tieout
+    description: >
+      Closing balance of GL account 1200 against the AR roll-forward per month;
+      `diff_cents` is the ledger minus the subledger.
+    columns:
+      - name: month
+        data_tests: [not_null, unique]
+      - name: diff_cents
+        data_tests: [not_null]

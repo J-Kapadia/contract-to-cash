@@ -1,0 +1,28 @@
+version: 2
+
+# Everything `c2c` loads into `raw`: the books (as VARCHAR, with `_row_hash`, `_month`,
+# `known_on` and `_load_id`) and the reference files (`ref_*`).
+sources:
+  - name: raw
+    schema: raw
+    tables:
+      - name: crm_accounts
+      - name: crm_contacts
+      - name: pipeline_snapshots
+      - name: contracts
+      - name: contract_lines
+      - name: usage_monthly
+      - name: billing_customers
+      - name: invoices
+      - name: payments
+      - name: bank_transactions
+      - name: gl
+      - name: payroll_runs
+      - name: headcount_plan
+      - name: commission_plan
+      - name: ap_bills
+      - name: vendor_commitments
+      - name: ref_legal_suffixes
+      - name: ref_freemail_domains
+      - name: ref_gl_accounts
+      - name: ref_business_days

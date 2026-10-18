@@ -1,0 +1,12 @@
+version: 2
+
+models:
+  - name: stg_payments
+    description: Cash applied to invoices, typed. One row per payment application.
+    columns:
+      - name: payment_id
+        data_tests: [not_null]
+      - name: invoice_id
+        data_tests: [not_null]
+      - name: applied_cents
+        data_tests: [not_null]
