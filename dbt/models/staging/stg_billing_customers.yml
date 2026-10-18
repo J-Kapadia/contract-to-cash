@@ -1,0 +1,10 @@
+version: 2
+
+models:
+  - name: stg_billing_customers
+    description: Billing-system customers, typed, with the bill-to email in lowercase and an empty CRM reference as NULL. One row per customer.
+    columns:
+      - name: billing_customer_id
+        data_tests: [not_null, unique]
+      - name: bill_to_name
+        data_tests: [not_null]

@@ -1,0 +1,18 @@
+version: 2
+
+models:
+  - name: int_match_variants
+    description: >
+      Every customer-facing spelling in the CRM, billing, bank and ledger, with its normalised
+      name, name tokens, non-free-mail domain and contact emails. One row per source record.
+    columns:
+      - name: source_system
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [crm, billing, bank_name, gl_name]
+      - name: source_id
+        data_tests: [not_null]
+      - name: norm_name
+        data_tests: [not_null]

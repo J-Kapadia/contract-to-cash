@@ -1,0 +1,10 @@
+version: 2
+
+models:
+  - name: stg_crm_accounts
+    description: CRM accounts, typed. One row per account.
+    columns:
+      - name: crm_account_id
+        data_tests: [not_null, unique]
+      - name: account_name
+        data_tests: [not_null]

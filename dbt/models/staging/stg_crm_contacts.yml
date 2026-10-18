@@ -1,0 +1,10 @@
+version: 2
+
+models:
+  - name: stg_crm_contacts
+    description: CRM contacts, typed, with the email in lowercase. One row per contact.
+    columns:
+      - name: contact_id
+        data_tests: [not_null, unique]
+      - name: crm_account_id
+        data_tests: [not_null]

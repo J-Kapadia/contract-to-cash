@@ -1,0 +1,15 @@
+version: 2
+
+models:
+  - name: int_match_candidates
+    description: >
+      Pairs of customer-name variants blocked on a shared name token, domain or contact email.
+      One row per pair, ordered by (system, id); block_reason lists every reason in alphabetical
+      order, comma-separated.
+    columns:
+      - name: source_a
+        data_tests: [not_null]
+      - name: source_b
+        data_tests: [not_null]
+      - name: block_reason
+        data_tests: [not_null]
