@@ -39,7 +39,7 @@ def stale_review_pairs(con) -> list[dict]:
 
 
 def close_month(resolved: paths.Paths, month: str, reference: str | Path = DEFAULT_REFERENCE) -> Envelope:
-    """Load every month from the books' first through `month`, run dbt once, and report.
+    """Load every month from the books' first through `month`, check the loaded books, run dbt once, and report.
 
     Refuses with exit 4 unless the configuration in force is signed."""
     load.check_month(month)
@@ -54,6 +54,8 @@ def close_month(resolved: paths.Paths, month: str, reference: str | Path = DEFAU
         counts = load.load_months(con, resolved.books, first, month, run_id)
         counts.update(load.load_reference(con, reference))
         counts.update(load.load_config(con, resolved.config))
+        # The books must be sound before any model is built, so a model test fails only on a code defect.
+        raw_results = controls.run(con, month, "raw", run_id)
     finally:
         con.close()
     dbt_runner.build(resolved.warehouse)
@@ -61,7 +63,7 @@ def close_month(resolved: paths.Paths, month: str, reference: str | Path = DEFAU
     con = db.connect(resolved.warehouse)
     try:
         stale = stale_review_pairs(con)
-        results = controls.run(con, month, "mart", run_id)
+        results = raw_results + controls.run(con, month, "mart", run_id)
         prov.write_ar_closing(con, month, [r.id for r in results], run_id)
     finally:
         con.close()

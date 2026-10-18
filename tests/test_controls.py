@@ -29,14 +29,15 @@ def edit_gl_line(books, entry_id: str, extra_cents: int) -> None:
         writer.writerows(rows)
 
 
-def test_a_clean_close_reports_every_mart_control_as_passing(closed, tmp_path):
+def test_a_clean_close_reports_every_control_as_passing(closed, tmp_path):
     warehouse = tmp_path / "w.duckdb"  # a close writes: never the shared warehouse other tests read
     shutil.copy(closed.warehouse, warehouse)
     done = c2c("close", "--month", MONTH, "--books", str(closed.books), "--warehouse", str(warehouse),
                "--json")
     assert done.code == 0, done.stderr
     assert done.json["controls"] == [{"id": control, "status": "pass", "violating_rows": 0}
-                                     for control in ("CTL-BILL-CONTRACT", "CTL-CUTOFF", "CTL-MASTER-ANCHOR",
+                                     for control in ("CTL-DUP-INVOICE", "CTL-DUP-PAYMENT", "CTL-REF-INTEGRITY",
+                                                   "CTL-BILL-CONTRACT", "CTL-CUTOFF", "CTL-MASTER-ANCHOR",
                                                    "CTL-MASTER-REVIEW", "CTL-TIE-AR")]
 
 
