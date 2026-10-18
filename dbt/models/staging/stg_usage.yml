@@ -1,0 +1,12 @@
+version: 2
+
+models:
+  - name: stg_usage
+    description: Units used per contract per month; `month` is the text YYYY-MM.
+    columns:
+      - name: contract_id
+        data_tests: [not_null]
+      - name: month
+        data_tests: [not_null]
+      - name: units
+        data_tests: [not_null]

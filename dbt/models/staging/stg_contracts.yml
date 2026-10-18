@@ -1,0 +1,17 @@
+version: 2
+
+models:
+  - name: stg_contracts
+    description: Contract versions, typed. One row per contract version; a version after the first is an amendment.
+    columns:
+      - name: contract_id
+        data_tests: [not_null]
+      - name: version
+        data_tests: [not_null]
+      - name: crm_account_id
+        data_tests: [not_null]
+      - name: billing_frequency
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [annual, quarterly]

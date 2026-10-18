@@ -1,0 +1,30 @@
+version: 2
+
+models:
+  - name: int_billing_schedule
+    description: >
+      The invoices the contracts call for: subscription periods in advance, amendment stubs and
+      credits, and overage on each usage month's last day. `source`, `as_of` and `case` let
+      forecast contracts share the model; the contracts' own rows are source `actual` with no
+      as-of date and no case.
+    columns:
+      - name: source
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [actual, contracted, renewal, new, expansion]
+      - name: customer_id
+        data_tests: [not_null]
+      - name: contract_id
+        data_tests: [not_null]
+      - name: line_id
+        data_tests: [not_null]
+      - name: invoice_date
+        data_tests: [not_null]
+      - name: service_start
+        data_tests: [not_null]
+      - name: service_end
+        data_tests: [not_null]
+      - name: amount_cents
+        data_tests: [not_null]

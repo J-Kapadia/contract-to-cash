@@ -1,0 +1,12 @@
+version: 2
+
+models:
+  - name: fct_billing_schedule
+    description: One row per scheduled invoice line, signed cents; a credit is negative.
+    columns:
+      - name: source
+        data_tests: [not_null]
+      - name: customer_id
+        data_tests: [not_null]
+      - name: amount_cents
+        data_tests: [not_null]

@@ -1,0 +1,17 @@
+version: 2
+
+models:
+  - name: stg_contract_lines
+    description: Contract lines per version, typed. Fees and rates are cents.
+    columns:
+      - name: contract_id
+        data_tests: [not_null]
+      - name: line_id
+        data_tests: [not_null]
+      - name: product
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [subscription, overage]
+      - name: annual_fee_cents
+        data_tests: [not_null]
