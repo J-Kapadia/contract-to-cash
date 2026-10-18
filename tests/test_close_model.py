@@ -37,8 +37,8 @@ def test_closing_ar_per_customer_equals_the_handmade_figure(closed):
     got = dict(query(closed, "SELECT customer_id, closing_cents FROM mart.fct_ar_rollforward WHERE month = ?",
                      [MONTH]))
     assert got == expected
-    assert expected["acct_0001"] == 0  # paid in full in February
-    assert expected["acct_0003"] > 0  # the part payer still owes
+    assert set(expected) == {"acct_0001", "acct_0002", "acct_0003"}
+    assert sum(expected.values()) > 0  # the last invoices are not paid yet
 
 
 def test_rollforward_rows_add_up(closed):

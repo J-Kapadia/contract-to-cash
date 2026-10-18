@@ -13,7 +13,7 @@ from c2c.errors import ControlFailure, InternalError
 from conftest import c2c
 
 MONTH = "2026-03"
-EDITED_ENTRY = "je_0002"  # a GL 1200 line of January
+EDITED_ENTRY = "je_000002"  # a GL 1200 line of January
 
 
 def edit_gl_line(books, entry_id: str, extra_cents: int) -> None:

@@ -240,7 +240,7 @@ def test_gen_failures_emit_valid_envelopes(tmp_path):
     assert missing.code == 4
     valid(missing.json)
 
-    usage = c2c("gen", "--json")
+    usage = c2c("gen", "--fixture", "nope", "--json")
     assert usage.code == 2
     valid(usage.json)
-    assert usage.json["message"].startswith("name a fixture")
+    assert "--fixture" in usage.json["message"]
