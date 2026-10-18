@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/c2c/envelope.schema.json",
+  "title": "c2c envelope",
+  "description": "The result of a c2c command. Additive only: unknown properties are allowed and a reader must ignore them.",
+  "type": "object",
+  "required": ["schema_version", "command", "status", "exit"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "command": {"type": "string", "minLength": 1},
+    "status": {"enum": ["ok", "warning", "failed"]},
+    "exit": {"enum": [0, 1, 2, 3, 4, 5, 6, 70]},
+    "month": {"type": "string", "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$"},
+    "controls": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "status", "violating_rows"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "status": {"type": "string", "minLength": 1},
+          "violating_rows": {"type": "integer", "minimum": 0}
+        }
+      }
+    },
+    "result_hash": {"type": "string", "minLength": 1},
+    "failed_controls": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "violating_rows", "detail", "remediation"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "violating_rows": {"type": "integer", "minimum": 0},
+          "detail": {
+            "type": "object",
+            "required": ["row_hashes", "number_ids"],
+            "properties": {
+              "row_hashes": {"type": "array", "items": {"type": "string"}},
+              "number_ids": {"type": "array", "items": {"type": "string"}}
+            }
+          },
+          "remediation": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "message": {"type": "string"}
+  },
+  "allOf": [
+    {"if": {"properties": {"status": {"const": "ok"}}}, "then": {"properties": {"exit": {"const": 0}}}},
+    {"if": {"properties": {"status": {"const": "warning"}}}, "then": {"properties": {"exit": {"const": 1}}}},
+    {
+      "if": {"properties": {"status": {"const": "failed"}}},
+      "then": {"required": ["message"], "properties": {"exit": {"minimum": 2}}}
+    }
+  ]
+}
