@@ -1,0 +1,14 @@
+version: 2
+
+models:
+  - name: fct_defrev_rollforward
+    description: >
+      Deferred revenue per customer per month. Opening + subscription and credit billings -
+      recognised revenue of those lines = closing.
+    columns:
+      - name: month
+        data_tests: [not_null]
+      - name: customer_id
+        data_tests: [not_null]
+      - name: closing_cents
+        data_tests: [not_null]
