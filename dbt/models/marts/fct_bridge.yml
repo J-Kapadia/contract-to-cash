@@ -1,0 +1,19 @@
+version: 2
+
+models:
+  - name: fct_bridge
+    description: >
+      The revenue-to-cash bridge, one row per month and line: revenue, defrev_movement,
+      net_billings (revenue + defrev_movement), ar_movement and receipts (net_billings -
+      ar_movement). There is no plug line.
+    columns:
+      - name: month
+        data_tests: [not_null]
+      - name: line
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [revenue, defrev_movement, net_billings, ar_movement, receipts]
+      - name: cents
+        data_tests: [not_null]
