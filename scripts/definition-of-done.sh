@@ -70,6 +70,20 @@ uv sync --frozen
 uv lock --check
 uv run c2c --version
 
+# The skeleton end to end: generate, close, explain a number, write the memo and find a number id in it.
+uv run c2c gen --fixture small
+uv run c2c close --month 2026-03 --fixture small --json >/dev/null
+uv run c2c explain ar/2026-03/acct_0001/closing --fixture small >/dev/null
+memo_out=$(mktemp -d)
+uv run c2c memo --month 2026-03 --fixture small --out "$memo_out"
+grep -rq data-num-id "$memo_out"
+rm -rf "$memo_out"
+
+# Only c2c.db opens a DuckDB connection (the test wrapper that applies the same caps is the one other place).
+if grep -rn 'duckdb\.connect(' src tests --include='*.py' | grep -v -e '^src/c2c/db\.py:' -e '^tests/conftest\.py:'; then
+  fail "duckdb.connect( outside c2c.db (listed above): open connections through c2c.db.connect"
+fi
+
 # Nothing to collect (pytest would exit 5) until the first test file lands.
 if [ -n "$(find tests -name 'test_*.py' -print -quit 2>/dev/null)" ]; then
   if [ "$fast" -eq 1 ]; then

@@ -1,0 +1,10 @@
+<section id="cash-position">
+<h2>Cash position (synthetic)</h2>
+<p>Accounts receivable at the close of {{ month }}, by customer.</p>
+<table>
+<thead><tr><th>Customer</th><th class="amount">AR closing</th></tr></thead>
+<tbody>
+{% for row in ar_customers %}<tr><td>{{ row.customer_id }}</td><td class="amount">{{ row.number_id | num }}</td></tr>
+{% endfor %}</tbody>
+</table>
+</section>
