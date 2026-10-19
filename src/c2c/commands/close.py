@@ -6,9 +6,8 @@ from pathlib import Path
 
 import click
 
-from .. import paths
+from .. import check, db, paths
 from ..close import DEFAULT_REFERENCE, close_month
-from ..errors import UsageError
 from ..gen import generate
 
 LOCK = "exclusive"
@@ -25,13 +24,22 @@ def ensure_fixture_books(resolved: paths.Paths) -> None:
 
 @click.command(name="close")
 @click.option("--month", required=True, help="Month to close, YYYY-MM.")
-@click.option("--check", is_flag=True, help="Compare the results with the answer key.")
+@click.option("--check", "run_check", is_flag=True, help="Compare the results with the answer key.")
 @click.option("--reference", default=DEFAULT_REFERENCE, show_default=True, help="Reference files directory.")
 @paths.path_options
-def command(month: str, check: bool, reference: str) -> None:
+def command(month: str, run_check: bool, reference: str) -> None:
     """Close MONTH: load the books through it, run the models once and close each month up to it in order."""
     ctx = click.get_current_context()
-    if check:
-        raise UsageError("--check is not available yet.")
-    ensure_fixture_books(ctx.obj)
-    close_month(ctx.obj, month, reference, recompute=False).render(ctx.obj.as_json)
+    resolved = ctx.obj
+    if run_check:
+        check.require_truth(resolved.truth)
+    ensure_fixture_books(resolved)
+    envelope = close_month(resolved, month, reference, recompute=False)
+    if run_check:
+        con = db.connect(resolved.warehouse, read_only=True)
+        try:
+            envelope.controls += check.close_check(con, month, resolved.truth)
+        finally:
+            con.close()
+        envelope.message = f"{envelope.message}; matches the answer key"
+    envelope.render(resolved.as_json)

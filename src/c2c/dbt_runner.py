@@ -32,15 +32,13 @@ def scratch_dir(warehouse: str | Path) -> Path:
     return warehouse.with_name(warehouse.name + ".dbt")
 
 
-def build(warehouse: str | Path, select: str | None = None, exclude: str | None = "tag:forecast",
-          vars: Mapping[str, object] | None = None) -> None:
-    """Run `dbt build` over the project against `warehouse`; models tagged `forecast` are left out
-    unless `exclude` says otherwise. Raises `InternalError` with dbt's last lines on a failure."""
+def _run(verb: str, warehouse: str | Path, select: str | None, exclude: str | None,
+         vars: Mapping[str, object] | None) -> None:
     warehouse = Path(warehouse).resolve()
     scratch = scratch_dir(warehouse)
     scratch.mkdir(parents=True, exist_ok=True)
     project = project_dir()
-    args = ["build", "--project-dir", str(project), "--profiles-dir", str(project), "--no-use-colors",
+    args = [verb, "--project-dir", str(project), "--profiles-dir", str(project), "--no-use-colors",
             "--quiet", "--target-path", str(scratch / "target"), "--log-path", str(scratch / "logs")]
     if select:
         args += ["--select", select]
@@ -57,4 +55,18 @@ def build(warehouse: str | Path, select: str | None = None, exclude: str | None 
                           env=env, capture_output=True, text=True, check=False)
     if proc.returncode != 0:
         lines = (proc.stdout + proc.stderr).strip().splitlines()[-TAIL_LINES:]
-        raise InternalError("dbt build failed:\n" + "\n".join(lines))
+        raise InternalError(f"dbt {verb} failed:\n" + "\n".join(lines))
+
+
+def build(warehouse: str | Path, select: str | None = None, exclude: str | None = "tag:forecast",
+          vars: Mapping[str, object] | None = None) -> None:
+    """Run `dbt build` over the project against `warehouse`; models tagged `forecast` are left out
+    unless `exclude` says otherwise. Raises `InternalError` with dbt's last lines on a failure."""
+    _run("build", warehouse, select, exclude, vars)
+
+
+def test(warehouse: str | Path, select: str | None = None, exclude: str | None = "tag:forecast",
+         vars: Mapping[str, object] | None = None) -> None:
+    """Run `dbt test` over the models already built in `warehouse`, with the same selection as `build`.
+    Raises `InternalError` with dbt's last lines when a test fails."""
+    _run("test", warehouse, select, exclude, vars)
