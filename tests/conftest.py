@@ -101,7 +101,7 @@ class Result:
 # the default warehouse lock or on the default books. Session fixtures run before any test has set
 # one, so they fall back to a directory private to the process.
 _default_root: Path | None = None
-_process_default_root: Path | None = None
+_process_default_root: Path | None = None  # created by this process, removed when the session ends
 
 
 def default_paths() -> dict[str, str]:
@@ -121,6 +121,18 @@ def default_paths() -> dict[str, str]:
         "DBT_TARGET_PATH": str(_process_default_root / "dbt-target"),
         "DBT_LOG_PATH": str(_process_default_root / "dbt-logs"),
     }
+
+
+def pytest_sessionfinish(session, exitstatus):
+    """Remove the scratch directories this process made under the temporary directory."""
+    global _process_default_root, _process_signed
+    for root in (_process_default_root, _process_signed[0].parent if _process_signed else None):
+        if root is not None:
+            shutil.rmtree(root, ignore_errors=True)
+    _process_default_root = _process_signed = None
+    macro_sql = sys.modules.get("macro_sql")
+    if macro_sql is not None:
+        macro_sql.remove_created()
 
 
 def _default_xdist_workers() -> int:

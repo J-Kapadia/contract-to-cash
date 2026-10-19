@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import functools
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -18,6 +19,9 @@ from pathlib import Path
 from typing import Any
 
 from c2c import db
+
+# Directories this process created; the session-finish hook in conftest.py removes them.
+created_dirs: list[Path] = []
 
 MACROS = Path(__file__).resolve().parents[1] / "dbt" / "macros"
 
@@ -33,6 +37,18 @@ INPUT_TABLES = {
     "ratable": "amount_cents BIGINT, service_start DATE, service_end DATE, month VARCHAR",
     "split": "total_cents BIGINT, weight_bps BIGINT, part_key VARCHAR, part_group INTEGER",
 }
+
+
+def _scratch_dir(prefix: str) -> Path:
+    path = Path(tempfile.mkdtemp(prefix=prefix))
+    created_dirs.append(path)
+    return path
+
+
+def remove_created() -> None:
+    """Remove every scratch directory this process created."""
+    while created_dirs:
+        shutil.rmtree(created_dirs.pop(), ignore_errors=True)
 
 
 def _write_project(root: Path) -> None:
@@ -51,7 +67,7 @@ def _write_project(root: Path) -> None:
 @functools.cache
 def compiled() -> dict[str, str]:
     """The compiled SQL of each scratch model, from one `dbt compile`."""
-    root = Path(tempfile.mkdtemp(prefix="c2c-macros-"))
+    root = _scratch_dir("c2c-macros-")
     _write_project(root)
     env = {**os.environ, "DBT_SEND_ANONYMOUS_USAGE_STATS": "false"}
     proc = subprocess.run(
@@ -68,7 +84,7 @@ def compiled() -> dict[str, str]:
 
 @functools.cache
 def _connection() -> Any:
-    path = Path(tempfile.mkdtemp(prefix="c2c-macro-db-")) / "macros.duckdb"
+    path = _scratch_dir("c2c-macro-db-") / "macros.duckdb"
     return db.connect(path)
 
 
