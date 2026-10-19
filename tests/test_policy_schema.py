@@ -66,12 +66,9 @@ def test_the_committed_cases_follow_the_driver_table():
     assert {c.cloud_trailing_months for c in (cases.base, cases.downside, cases.upside)} == {3}
 
 
-def test_the_committed_matches_await_their_decisions():
-    pairs = yaml.safe_load((CONFIG / "customer_matches.yaml").read_text())["pairs"]
-    assert pairs
-    assert all(entry["decision"] is None and entry["reason"] == "" for entry in pairs)
-    with pytest.raises(policy.PolicyError, match="set it to same or different"):
-        policy.load_matches(CONFIG)
+def test_the_committed_matches_start_empty():
+    assert policy.load_matches(CONFIG) == ()
+    assert yaml.safe_load((CONFIG / "customer_matches.yaml").read_text()) == {"pairs": []}
 
 
 def test_sha256_of_hashes_the_file_bytes():
