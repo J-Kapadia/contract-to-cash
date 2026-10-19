@@ -7,6 +7,11 @@ model-paths: ["models"]
 macro-paths: ["macros"]
 test-paths: ["tests"]
 
+# The as-of date of a forecast build; a plain close builds no forecast model, so the default
+# only lets the project parse.
+vars:
+  as_of: "9999-12-31"
+
 models:
   c2c:
     +materialized: table
@@ -16,3 +21,7 @@ models:
       +schema: int
     marts:
       +schema: mart
+    forecast:
+      +tags: ['forecast']
+      +schema: fc_build
+      +materialized: view

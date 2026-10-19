@@ -1,0 +1,67 @@
+version: 2
+
+# Point-in-time views over the loaded books: each keeps the rows whose `known_on` is on or before
+# the as-of date (`var('as_of')`), so a forecast as of A cannot read a row that entered the
+# source system later. Columns are the raw columns, `known_on` as a DATE.
+
+models:
+  - name: pit_contracts
+    description: The `contracts` rows known on or before the as-of date.
+    columns:
+      - name: known_on
+        data_tests: [not_null]
+  - name: pit_contract_lines
+    description: The `contract_lines` rows known on or before the as-of date.
+    columns:
+      - name: known_on
+        data_tests: [not_null]
+  - name: pit_invoices
+    description: The `invoices` rows known on or before the as-of date.
+    columns:
+      - name: known_on
+        data_tests: [not_null]
+  - name: pit_payments
+    description: The `payments` rows known on or before the as-of date.
+    columns:
+      - name: known_on
+        data_tests: [not_null]
+  - name: pit_bank
+    description: The `bank_transactions` rows known on or before the as-of date.
+    columns:
+      - name: known_on
+        data_tests: [not_null]
+  - name: pit_pipeline
+    description: The `pipeline_snapshots` rows known on or before the as-of date.
+    columns:
+      - name: known_on
+        data_tests: [not_null]
+  - name: pit_usage
+    description: The `usage_monthly` rows known on or before the as-of date.
+    columns:
+      - name: known_on
+        data_tests: [not_null]
+  - name: pit_payroll
+    description: The `payroll_runs` rows known on or before the as-of date.
+    columns:
+      - name: known_on
+        data_tests: [not_null]
+  - name: pit_headcount_plan
+    description: The `headcount_plan` rows known on or before the as-of date.
+    columns:
+      - name: known_on
+        data_tests: [not_null]
+  - name: pit_commission_plan
+    description: The `commission_plan` rows known on or before the as-of date.
+    columns:
+      - name: known_on
+        data_tests: [not_null]
+  - name: pit_ap_bills
+    description: The `ap_bills` rows known on or before the as-of date.
+    columns:
+      - name: known_on
+        data_tests: [not_null]
+  - name: pit_vendor_commitments
+    description: The `vendor_commitments` rows known on or before the as-of date.
+    columns:
+      - name: known_on
+        data_tests: [not_null]
