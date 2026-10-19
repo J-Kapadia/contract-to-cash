@@ -1,0 +1,62 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  fast:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install uv
+        run: pip install uv==0.13.0
+      - name: Check the lock file and install from it
+        run: |
+          uv sync --frozen
+          uv lock --check
+      - name: Write the placeholder denylist
+        # The real denylist never leaves the author's machine. This copy holds a single
+        # placeholder term, so CI checks that a denylist is present, not what is on it.
+        run: |
+          echo "placeholder-term-not-a-real-denylist-entry" > "$RUNNER_TEMP/denylist.txt"
+          echo "C2C_DENYLIST_PATH=$RUNNER_TEMP/denylist.txt" >> "$GITHUB_ENV"
+      - name: Fast tier
+        run: timeout 900 scripts/definition-of-done.sh --fast
+
+  slow:
+    needs: fast
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install uv
+        run: pip install uv==0.13.0
+      - name: Check the lock file and install from it
+        run: |
+          uv sync --frozen
+          uv lock --check
+      - name: Write the placeholder denylist
+        # Same single placeholder term as the fast job; the real denylist stays local.
+        run: |
+          echo "placeholder-term-not-a-real-denylist-entry" > "$RUNNER_TEMP/denylist.txt"
+          echo "C2C_DENYLIST_PATH=$RUNNER_TEMP/denylist.txt" >> "$GITHUB_ENV"
+      - name: Full definition of done
+        run: timeout 3600 scripts/definition-of-done.sh
+      - name: Record sizes
+        id: sizes
+        run: |
+          echo "warehouse=$(du -sh warehouse 2>/dev/null | cut -f1)" >> "$GITHUB_OUTPUT"
+          echo "site=$(du -sh site 2>/dev/null | cut -f1)" >> "$GITHUB_OUTPUT"
+      - name: Print sizes
+        run: |
+          echo "warehouse: ${{ steps.sizes.outputs.warehouse }}"
+          echo "site: ${{ steps.sizes.outputs.site }}"

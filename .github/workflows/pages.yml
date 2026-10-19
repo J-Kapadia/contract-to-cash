@@ -1,0 +1,44 @@
+name: pages
+
+# Deploys the built site when a release tag is pushed. It has no effect until
+# GitHub Pages is enabled for the repository.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  pages: write
+  id-token: write
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install uv
+        run: pip install uv==0.13.0
+      - name: Install from the lock file
+        run: uv sync --frozen
+      - name: Build the site
+        run: uv run c2c gen && uv run c2c rollforward --month 2026-09 && uv run c2c memo --month 2026-09 --check --crawl --out site
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
