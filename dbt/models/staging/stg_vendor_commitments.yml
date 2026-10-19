@@ -1,0 +1,22 @@
+version: 2
+
+models:
+  - name: stg_vendor_commitments
+    description: >
+      Committed future vendor payments (rent, events, annual software), typed; `known_on` is the
+      date the commitment entered the source system. A view over the loaded books.
+    columns:
+      - name: commitment_id
+        data_tests: [not_null, unique]
+      - name: category
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [cloud, vendor, software, events, rent]
+      - name: due_date
+        data_tests: [not_null]
+      - name: amount_cents
+        data_tests: [not_null]
+      - name: known_on
+        data_tests: [not_null]

@@ -1,0 +1,15 @@
+version: 2
+
+models:
+  - name: stg_headcount_plan
+    description: >
+      Planned headcount changes, typed: from `month` (text YYYY-MM; `month_start` is its first day)
+      each payroll run changes by `delta_cash_per_run_cents`. A view over the loaded books;
+      `known_on` is the date the plan row entered the source system.
+    columns:
+      - name: month_start
+        data_tests: [not_null]
+      - name: delta_cash_per_run_cents
+        data_tests: [not_null]
+      - name: known_on
+        data_tests: [not_null]

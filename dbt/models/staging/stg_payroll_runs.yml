@@ -1,0 +1,21 @@
+version: 2
+
+models:
+  - name: stg_payroll_runs
+    description: >
+      Actual payroll runs, typed; `half` is `mid` (the 15th) or `end` (the last day), each moved
+      to the previous business day when it falls on a non-business day. A view over the loaded
+      books, so a row added later shows at once; `known_on` is the date it entered the source system.
+    columns:
+      - name: pay_date
+        data_tests: [not_null]
+      - name: half
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [mid, end]
+      - name: cash_cents
+        data_tests: [not_null]
+      - name: known_on
+        data_tests: [not_null]

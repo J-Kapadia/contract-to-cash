@@ -1,0 +1,23 @@
+version: 2
+
+models:
+  - name: stg_ap_bills
+    description: >
+      Vendor bills, typed. `paid_bank_txn_id` is the bank row that paid the bill (null while
+      unpaid in the books); `known_on` is the date the bill entered the source system. A view
+      over the loaded books.
+    columns:
+      - name: bill_id
+        data_tests: [not_null, unique]
+      - name: category
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [cloud, vendor, software, events, rent]
+      - name: due_date
+        data_tests: [not_null]
+      - name: amount_cents
+        data_tests: [not_null]
+      - name: known_on
+        data_tests: [not_null]

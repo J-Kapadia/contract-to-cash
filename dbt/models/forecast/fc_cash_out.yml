@@ -1,0 +1,27 @@
+version: 2
+
+models:
+  - name: fc_cash_out
+    description: >
+      Forecast cash out per case and day over the 91 days after the as-of date: payroll, cloud,
+      vendors, events and rent, as positive cents, one row per case, day and line with a payment.
+    columns:
+      - name: as_of
+        data_tests: [not_null]
+      - name: case
+        quote: true
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [base, downside, upside]
+      - name: date
+        data_tests: [not_null]
+      - name: line
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [payroll, cloud, vendors, events, rent]
+      - name: cents
+        data_tests: [not_null]

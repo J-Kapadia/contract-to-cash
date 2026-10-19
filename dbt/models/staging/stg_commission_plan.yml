@@ -1,0 +1,17 @@
+version: 2
+
+models:
+  - name: stg_commission_plan
+    description: >
+      Commission rates in basis points, on bookings and on first-year collections, from
+      `effective_from`. A view over the loaded books; `known_on` is the date the row entered the
+      source system.
+    columns:
+      - name: rate_on_booking_bps
+        data_tests: [not_null]
+      - name: rate_on_collection_bps
+        data_tests: [not_null]
+      - name: effective_from
+        data_tests: [not_null]
+      - name: known_on
+        data_tests: [not_null]
