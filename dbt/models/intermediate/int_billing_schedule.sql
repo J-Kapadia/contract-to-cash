@@ -6,13 +6,25 @@
 -- price less its elapsed part (a decrease is negative, a credit). Overage bills each usage month
 -- on the month's last day: (units - included units) x the rate, when positive.
 --
--- `source`, `as_of` and `case` let forecast contracts join this model later; these rows are the
--- actual source, with neither an as-of date nor a case.
+-- `source`, `as_of` and `case` let forecast contracts share this model. The actual rows have source
+-- `actual` and neither an as-of date nor a case. When the `as_of` variable is set (a forecast
+-- build; the project default 9999-12-31 means unset) the forecast contracts of `fc_contracts_renewal`
+-- and `fc_contracts_pipeline` are scheduled too, once per case, under their own source (`renewal`,
+-- `new`, `expansion`), and the model is built into the scratch schema with the `forecast` tag so
+-- that a close never sees them.
 --
 -- Where the contracts are silent: the billing grid (frequency and term) is the first version's;
 -- a period that is cut short by the term end still bills its full price; a stub ends with the
 -- period it falls in, which is the contract's term end for a one-period contract; only the first
--- overage line (by id) of the governing version bills usage.
+-- overage line (by id) of the governing version bills usage. A forecast contract has one version,
+-- no amendments and no overage: it bills its annual fee in advance on the same grid, a quarterly
+-- one in four parts that sum to the fee exactly.
+
+{%- set as_of_set = var('as_of') != '9999-12-31' %}
+{{ config(
+    tags=['forecast'] if as_of_set else [],
+    schema='fc_build' if as_of_set else 'int'
+) }}
 
 with versions as (
     select
@@ -238,17 +250,93 @@ events as (
     select * from stubs
     union all
     select * from overage
+),
+
+actual as (
+    select
+        'actual' as source,
+        null::date as as_of,
+        null::varchar as "case",
+        customer_id,
+        contract_id,
+        line_id,
+        billed_on as invoice_date,
+        starts_on as service_start,
+        ends_on as service_end,
+        cents::bigint as amount_cents
+    from events
+)
+{%- if as_of_set %},
+
+forecast_terms as (
+    select as_of, "case", source, customer_id, contract_id, line_id, term_start, term_end,
+           billing_frequency, annual_fee_cents
+    from {{ ref('fc_contracts_renewal') }}
+    union all
+    select as_of, "case", source, customer_id, opp_id, opp_id, term_start, term_end,
+           billing_frequency, annual_fee_cents
+    from {{ ref('fc_contracts_pipeline') }}
+),
+
+forecast_quarters as (
+    select
+        forecast_terms.*,
+        quarters.quarter,
+        {{ split_exact('forecast_terms.annual_fee_cents', 'quarters.weight_bps', 'quarters.quarter',
+                       'forecast_terms.source, forecast_terms.as_of, forecast_terms."case", '
+                       ~ 'forecast_terms.contract_id, forecast_terms.line_id') }} as quarter_cents
+    from forecast_terms
+    cross join (values (0, 2500), (1, 2500), (2, 2500), (3, 2500)) as quarters(quarter, weight_bps)
+    where forecast_terms.billing_frequency = 'quarterly'
+),
+
+forecast_periods as (
+    select
+        forecast_terms.*,
+        grid.n as period_index,
+        case forecast_terms.billing_frequency when 'annual' then 12 else 3 end as step_months
+    from forecast_terms
+    cross join range(0, 400) as grid(n)
+    where (forecast_terms.term_start
+           + to_months(grid.n * case forecast_terms.billing_frequency when 'annual' then 12 else 3 end))::date
+        <= forecast_terms.term_end
+),
+
+forecast as (
+    select
+        forecast_periods.source,
+        forecast_periods.as_of,
+        forecast_periods."case",
+        forecast_periods.customer_id,
+        forecast_periods.contract_id,
+        forecast_periods.line_id,
+        (forecast_periods.term_start + to_months(forecast_periods.period_index * forecast_periods.step_months))::date
+            as invoice_date,
+        (forecast_periods.term_start + to_months(forecast_periods.period_index * forecast_periods.step_months))::date
+            as service_start,
+        least(
+            (forecast_periods.term_start
+             + to_months((forecast_periods.period_index + 1) * forecast_periods.step_months))::date - 1,
+            forecast_periods.term_end
+        ) as service_end,
+        case forecast_periods.billing_frequency
+            when 'annual' then forecast_periods.annual_fee_cents
+            else forecast_quarters.quarter_cents
+        end::bigint as amount_cents
+    from forecast_periods
+    left join forecast_quarters
+        on forecast_quarters.source = forecast_periods.source
+        and forecast_quarters.as_of = forecast_periods.as_of
+        and forecast_quarters."case" = forecast_periods."case"
+        and forecast_quarters.contract_id = forecast_periods.contract_id
+        and forecast_quarters.line_id = forecast_periods.line_id
+        and forecast_quarters.quarter = forecast_periods.period_index % 4
 )
 
-select
-    'actual' as source,
-    null::date as as_of,
-    null::varchar as "case",
-    customer_id,
-    contract_id,
-    line_id,
-    billed_on as invoice_date,
-    starts_on as service_start,
-    ends_on as service_end,
-    cents::bigint as amount_cents
-from events
+select * from actual
+union all
+select * from forecast where amount_cents <> 0
+{%- else %}
+
+select * from actual
+{%- endif %}

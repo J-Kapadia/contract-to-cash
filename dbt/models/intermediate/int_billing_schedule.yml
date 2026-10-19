@@ -7,6 +7,8 @@ models:
       credits, and overage on each usage month's last day. `source`, `as_of` and `case` let
       forecast contracts share the model; the contracts' own rows are source `actual` with no
       as-of date and no case.
+      With the `as_of` variable set (a forecast build) the model also holds the forecast
+      contracts, once per case, and is built into the scratch schema.
     columns:
       - name: source
         data_tests:

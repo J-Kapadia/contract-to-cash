@@ -1,0 +1,44 @@
+version: 2
+
+models:
+  - name: fc_revenue
+    description: >
+      Forecast recognised revenue per case, month and source for the 12 months after the as-of
+      date: the contracts in force (`contracted`) and the forecast renewal, new and expansion
+      contracts, recognised by day through the same `ratable_cents()` as the close.
+    columns:
+      - name: as_of
+        data_tests: [not_null]
+      - name: case
+        quote: true
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [base, downside, upside]
+      - name: month
+        data_tests: [not_null]
+      - name: source
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [contracted, renewal, new, expansion]
+      - name: recognised_cents
+        data_tests: [not_null]
+  - name: fc_billing_schedule
+    description: >
+      The billing schedule of a forecast as of A, per case: the forecast contracts' invoices from
+      `int_billing_schedule` and the `contracted` invoices of the contracts in force at A.
+    columns:
+      - name: source
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [contracted, renewal, new, expansion]
+      - name: as_of
+        data_tests: [not_null]
+      - name: case
+        quote: true
+        data_tests: [not_null]
