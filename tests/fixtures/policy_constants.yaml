@@ -28,6 +28,5 @@ escalate_days_past_due: 60
 renewal_review_days: 90
 renewal_review_acv_percentile: 75
 driver_review_bps: 1000
-drift_volume_shift_bps: 5000
 backtest_min_history_months: 18
 nrr_window_months: 12
