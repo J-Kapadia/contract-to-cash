@@ -102,6 +102,41 @@ def transition(con: duckdb.DuckDBPyConnection, month: str, to: str, input_digest
                 [month, to, input_digest, result_hash, restated_from])
 
 
+def locked_months(con: duckdb.DuckDBPyConnection) -> dict[str, str | None]:
+    """Every locked month with the `input_digest` recorded when it was locked, in month order."""
+    if not _exists(con, "state", "close_state"):
+        return {}
+    return dict(con.execute("SELECT month, input_digest FROM state.close_state WHERE status = ? ORDER BY month",
+                            [LOCKED]).fetchall())
+
+
+def lock_through(con: duckdb.DuckDBPyConnection, month: str) -> list[str]:
+    """Lock every closed month up to and including `month`; returns the months it locked.
+
+    A locked month keeps the `input_digest` and `result_hash` it was closed with, and a month that
+    is open or already locked is left as it is."""
+    init(con)
+    closed = [row[0] for row in con.execute(
+        "SELECT month FROM state.close_state WHERE status = ? AND month <= ? ORDER BY month", [CLOSED, month]).fetchall()]
+    for m in closed:
+        row = get(con, m)
+        transition(con, m, LOCKED, row["input_digest"], row["result_hash"], row["restated_from"])
+    return closed
+
+
+def define_row_view(con: duckdb.DuckDBPyConnection) -> None:
+    """(Re)create `state.raw_rows`, one line per loaded `raw.*` row of a month as `<table>:<_row_hash>`.
+
+    `input_digest` is the digest of these lines, so a control can recompute a month's digest in SQL."""
+    init(con)
+    tables = [row[0] for row in con.execute(
+        "SELECT table_name FROM information_schema.columns WHERE table_schema = 'raw' AND column_name = '_month'"
+        " ORDER BY table_name").fetchall()]
+    parts = [f"SELECT _month AS month, '{table}:' || _row_hash AS line FROM raw.\"{table}\"" for table in tables]
+    con.execute("CREATE OR REPLACE VIEW state.raw_rows AS "
+                + (" UNION ALL ".join(parts) or "SELECT NULL::VARCHAR AS month, NULL::VARCHAR AS line WHERE false"))
+
+
 def input_digest(con: duckdb.DuckDBPyConnection, month: str) -> str:
     """SHA-256 over the row hashes of every `raw.*` row that belongs to `month`."""
     tables = [row[0] for row in con.execute(

@@ -14,8 +14,9 @@ from pathlib import Path
 
 import duckdb
 
+from . import controls, prov, state
 from . import policy as policy_config
-from .errors import PreconditionError, UsageError
+from .errors import ControlFailure, PreconditionError, UsageError
 
 # File stem -> the column whose first seven characters (`YYYY-MM`) are the row's month. Rows
 # without a dated event of their own (accounts, contacts, lines, billing customers, commitments)
@@ -70,16 +71,59 @@ def check_in_window(books: str | Path, month: str) -> tuple[str, str]:
     return first, last
 
 
-def _load_file(con: duckdb.DuckDBPyConnection, path: Path, table: str, extra: str, where: str = "") -> int:
-    source = "read_csv(?, header = true, all_varchar = true)"
-    columns = [row[0] for row in con.execute(f"DESCRIBE SELECT * FROM {source}", [str(path)]).fetchall()]
+SOURCE = "read_csv(?, header = true, all_varchar = true)"
+
+
+def _row_hash_sql(con: duckdb.DuckDBPyConnection, path: Path) -> str:
+    """The SQL expression for the `_row_hash` of a row of the CSV at `path`."""
+    columns = [row[0] for row in con.execute(f"DESCRIBE SELECT * FROM {SOURCE}", [str(path)]).fetchall()]
     joined = ", ".join(f"coalesce({_quote(c)}, '')" for c in columns)
+    return f"sha256(concat_ws(chr(31), {joined}))"
+
+
+def _load_file(con: duckdb.DuckDBPyConnection, path: Path, table: str, extra: str, where: str = "") -> int:
     con.execute(
         f"CREATE OR REPLACE TABLE {table} AS "
-        f"SELECT *, sha256(concat_ws(chr(31), {joined})) AS _row_hash{extra} FROM {source} {where}",
+        f"SELECT *, {_row_hash_sql(con, path)} AS _row_hash{extra} FROM {SOURCE} {where}",
         [str(path)],
     )
     return con.execute(f"SELECT count(*) FROM {table}").fetchone()[0]
+
+
+def _check_header(con: duckdb.DuckDBPyConnection, path: Path, month_column: str) -> None:
+    header = {row[0] for row in con.execute(f"DESCRIBE SELECT * FROM {SOURCE}", [str(path)]).fetchall()}
+    for needed in ("known_on", month_column):
+        if needed not in header:
+            raise UsageError(f"{path} has no {needed} column.")
+
+
+def check_locked(con: duckdb.DuckDBPyConnection, books: str | Path, last: str) -> None:
+    """Fail with CTL-LOCK when the books' rows of a locked month, up to `last`, no longer hash to the
+    digest recorded when it was locked. Reads the files and writes nothing."""
+    books = Path(books)
+    locked = {m: d for m, d in state.locked_months(con).items() if m <= last}
+    if not locked:
+        return
+    lines: dict[str, list[str]] = {m: [] for m in locked}
+    for stem, month_column in MONTH_COLUMN.items():
+        path = books / f"{stem}.csv"
+        if not path.is_file():
+            continue
+        _check_header(con, path, month_column)
+        month = f"substr({_quote(month_column)}, 1, 7)"
+        rows = con.execute(f"SELECT {month}, {_row_hash_sql(con, path)} FROM {SOURCE} WHERE {month} IN "
+                           f"({', '.join('?' for _ in locked)})", [str(path), *locked]).fetchall()
+        for m, row_hash in rows:
+            lines[m].append(f"{stem}:{row_hash}")
+    changed = [m for m in locked if prov.digest(lines[m]) != locked[m]]
+    if not changed:
+        return
+    template, _ = controls._header(controls.CONTROLS_DIR / "CTL-LOCK.sql")
+    remediation = [controls._fill(template, ["month"], (m,)) for m in changed]
+    named = ", ".join(changed)
+    raise ControlFailure(f"locked month{'s' if len(changed) > 1 else ''} {named} changed: CTL-LOCK failed.", [
+        {"id": "CTL-LOCK", "violating_rows": len(changed), "detail": {"row_hashes": [], "number_ids": []},
+         "remediation": remediation}])
 
 
 def load_months(con: duckdb.DuckDBPyConnection, books: str | Path, first: str, last: str,
@@ -89,21 +133,19 @@ def load_months(con: duckdb.DuckDBPyConnection, books: str | Path, first: str, l
 
     The tables are rebuilt each time. Rows dated before `first` (a contract signed before the
     books' window opens) are history the window's rows refer to, so they load with their own
-    month. A books file needs `known_on` and its month column."""
+    month. A books file needs `known_on` and its month column. A locked month whose rows changed
+    fails with CTL-LOCK before anything is written."""
     if check_month(first) > check_month(last):
         raise UsageError(f"the first month {first} is after the last month {last}.")
     books = Path(books)
+    check_locked(con, books, last)
     con.execute("CREATE SCHEMA IF NOT EXISTS raw")
     counts: dict[str, int] = {}
     for stem, month_column in MONTH_COLUMN.items():
         path = books / f"{stem}.csv"
         if not path.is_file():
             continue
-        header = {row[0] for row in con.execute(
-            "DESCRIBE SELECT * FROM read_csv(?, header = true, all_varchar = true)", [str(path)]).fetchall()}
-        for needed in ("known_on", month_column):
-            if needed not in header:
-                raise UsageError(f"{path} has no {needed} column.")
+        _check_header(con, path, month_column)
         month = f"substr({_quote(month_column)}, 1, 7)"
         load_id_sql = "'" + load_id.replace("'", "''") + "'"
         counts[stem] = _load_file(
@@ -111,6 +153,7 @@ def load_months(con: duckdb.DuckDBPyConnection, books: str | Path, first: str, l
             f", {month} AS _month, {load_id_sql} AS _load_id",
             where=f"WHERE {month} <= '{check_month(last)}'",
         )
+    state.define_row_view(con)
     return counts
 
 
