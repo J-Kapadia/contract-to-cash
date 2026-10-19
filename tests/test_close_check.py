@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+import json
 import shutil
 from pathlib import Path
 
@@ -38,14 +39,16 @@ def query(warehouse: Path, sql: str, params=()):
 
 @pytest.fixture(scope="module")
 def checked(tmp_path_factory):
-    """`mini` closed through 2026-03 with `--check`: the first run's result and its warehouse. Read-only."""
-    holder: dict = {}
+    """`mini` closed through 2026-03 with `--check`: its warehouse and the first run's envelope. Read-only:
+    a test that runs `c2c` on the warehouse takes a copy, since a run holds the warehouse lock."""
 
     def build(directory: Path) -> None:
-        holder["done"] = close(directory / "w.duckdb")
+        done = close(directory / "w.duckdb")
+        assert done.code == 0, done.stderr
+        (directory / "first.json").write_text(done.stdout, encoding="utf-8")
 
     root = shared_dir(tmp_path_factory, "close-check-mini", build)
-    return root / "w.duckdb", holder.get("done")
+    return root / "w.duckdb", json.loads((root / "first.json").read_text(encoding="utf-8"))
 
 
 @pytest.fixture
@@ -55,12 +58,9 @@ def warehouse_copy(checked, tmp_path) -> Path:
 
 
 def test_a_clean_close_passes_every_control_and_check(checked):
-    warehouse, done = checked
-    if done is None:  # another xdist worker built it
-        done = close(warehouse)
-    assert done.code == 0, done.stderr
-    assert done.json["status"] == "ok"
-    controls = done.json["controls"]
+    envelope = checked[1]
+    assert envelope["status"] == "ok" and envelope["exit"] == 0
+    controls = envelope["controls"]
     assert {c["status"] for c in controls} == {"pass"}
     assert [c["id"] for c in controls][-3:] == CHECK_IDS
     assert len(controls) > 3
@@ -98,14 +98,12 @@ def test_the_bridge_equals_the_expected_bridge(checked):
     assert got == expected
 
 
-def test_two_runs_give_the_same_result_hash(checked, tmp_path):
-    warehouse, done = checked
-    again = close(warehouse)  # the same warehouse: nothing changed
+def test_two_runs_give_the_same_result_hash(checked, warehouse_copy, tmp_path):
+    again = close(warehouse_copy)  # the same warehouse: nothing changed
     assert again.code == 0, again.stderr
     other = close(tmp_path / "other.duckdb")  # a fresh one
     assert other.code == 0, other.stderr
-    first = done.json["result_hash"] if done is not None else again.json["result_hash"]
-    assert first == again.json["result_hash"] == other.json["result_hash"]
+    assert checked[1]["result_hash"] == again.json["result_hash"] == other.json["result_hash"]
 
 
 def test_dbt_test_passes_on_the_closed_warehouse(warehouse_copy):
