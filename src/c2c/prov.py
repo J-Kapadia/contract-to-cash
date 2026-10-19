@@ -16,6 +16,9 @@ A family file is a SELECT, run with `$month` bound when it mentions it, returnin
     children      VARCHAR[]  composites: the ids of the numbers it is computed from
     step          VARCHAR    optional: the model or file it comes from; the family name when absent
 
+A file that names a parameter other than `$month` belongs to a step that supplies it (a forecast, say)
+and is run there, not by `write_month`.
+
 A leaf's digest is over the `_row_hash`es its `source_query` selects. A composite's is over the
 `(number_id, input_digest)` pairs of its children in id order, so it changes when any child's does.
 A composite's children may belong to any family, or be records already written.
@@ -27,6 +30,7 @@ import functools
 import hashlib
 import json
 import os
+import re
 import subprocess
 import uuid
 from collections.abc import Sequence
@@ -104,8 +108,18 @@ RECORD_STRUCT = "{" + ", ".join(f'"{c}": "{t}"' for c, t in RECORD_TYPES.items()
 RESULT_FAMILIES = ("cust", "rev", "defrev", "ar", "cash", "bridge", "tie", "aging", "dtp", "rollup")
 
 
+# `$name`, but not the `$$` that quotes a string in the file.
+PARAMETER = re.compile(r"(?<!\$)\$([A-Za-z_]\w*)")
+
+
 class FamilyError(ValueError):
     """A family file returned something that cannot be recorded."""
+
+
+def month_families(directory: Path | None = None) -> list[Path]:
+    """The family files `write_month` runs, in name order: those that need no parameter but `$month`."""
+    return [p for p in sorted((directory or FAMILIES_DIR).glob("*.sql"))
+            if set(PARAMETER.findall(p.read_text(encoding="utf-8"))) <= {"month"}]
 
 
 def pair_digest(pairs: Sequence[tuple[str, str]]) -> str:
@@ -169,7 +183,7 @@ def write_month(con: duckdb.DuckDBPyConnection, month: str, checks_passed: Seque
     are written in one transaction, replacing the family's earlier records of the month."""
     run_id = run_id or uuid.uuid4().hex
     init(con)
-    paths = sorted((families or FAMILIES_DIR).glob("*.sql"))
+    paths = month_families(families)
     rows: dict[str, dict] = {}
     for path in paths:
         for row in family_rows(con, path, month):

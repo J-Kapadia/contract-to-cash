@@ -106,7 +106,7 @@ def reaches(con, row_hash: str, from_month: str) -> set[str]:
     months = [m for (m,) in con.execute("SELECT DISTINCT month FROM prov.records WHERE month >= ? ORDER BY 1",
                                         [from_month]).fetchall()]
     rows = {}
-    for path in sorted(prov.FAMILIES_DIR.glob("*.sql")):
+    for path in prov.month_families():
         if path.stem not in ("ref", "cfg"):
             for month in months:
                 rows.update({row["number_id"]: row for row in prov.family_rows(con, path, month)})

@@ -188,3 +188,16 @@ def test_a_number_that_leaves_its_family_loses_its_record(tmp_path):
         assert prov.write_month(con, MONTH, [], "run", families(tmp_path, demo=leaf)) == 1
         prov.write_month(con, MONTH, [], "run", families(tmp_path, demo=leaf.replace("/leaf'", "/renamed'")))
         assert con.execute("SELECT number_id FROM prov.records").fetchall() == [("demo/2026-03/renamed",)]
+
+
+def test_a_family_that_needs_another_parameter_is_left_to_its_own_step(tmp_path):
+    other = LEAF.format(value=1, row="h").replace("$month as month", "$as_of as month")
+    quoted = LEAF.format(value=1, row="h").replace("demo", "quoted") + " -- $$ a quoted string $$ stays a string"
+    directory = families(tmp_path, demo=LEAF.format(value=1, row="h"), forecast=other, quoted=quoted)
+    assert [p.stem for p in prov.month_families(directory)] == ["demo", "quoted"]
+    with db.connect(tmp_path / "t.duckdb") as con:
+        assert prov.write_month(con, MONTH, [], "run", directory) == 2
+
+
+def test_the_families_that_ship_with_the_package_all_run_at_close():
+    assert {"cust", "rev", "defrev", "ar", "cash", "bridge", "tie", "ref", "cfg"} <= {p.stem for p in prov.month_families()}
