@@ -1,0 +1,19 @@
+version: 2
+
+models:
+  - name: fct_ar_aging
+    description: >
+      Open receivables per month, customer and days-past-due bucket (current, 1-30, 31-60, 61-90,
+      91+, cut at the policy edges) at month-end: invoices billed through the month less the payments
+      applied through it. Every customer-month has a row for every bucket, and a customer's buckets
+      add up to its closing receivables.
+    columns:
+      - name: month
+        data_tests: [not_null]
+      - name: bucket
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['current', '1-30', '31-60', '61-90', '91+']
+      - name: open_cents
+        data_tests: [not_null]
