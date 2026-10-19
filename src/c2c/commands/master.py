@@ -9,9 +9,10 @@ import uuid
 import click
 
 from .. import controls, db, dbt_runner, load, master, paths, signoff
-from ..close import DEFAULT_REFERENCE, ensure_fixture_books
+from ..close import DEFAULT_REFERENCE
 from ..envelope import Envelope
 from ..errors import CheckMismatch, PreconditionError
+from .close import ensure_fixture_books
 
 LOCK = "exclusive"
 SELECT = "+dim_customer fct_rollup"

@@ -105,5 +105,5 @@ def test_a_receipt_equal_to_one_open_invoice_of_a_customer_is_applied_and_passes
                            " WHERE bank_txn_id = ?", [EXACT_RECEIPT]).fetchall() == [
             ("inv_000095", "acct_0001", 275000, "auto_applied")]
         assert con.execute("SELECT control_id, status FROM ctl.control_results WHERE control_id IN (?, ?)"
-                           " ORDER BY control_id", [CASH_APP, UNMATCHED]).fetchall() == [
+                           " AND month = '2026-03' ORDER BY control_id", [CASH_APP, UNMATCHED]).fetchall() == [
             (UNMATCHED, "pass"), (CASH_APP, "pass")]

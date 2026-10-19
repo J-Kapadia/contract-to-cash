@@ -10,7 +10,7 @@ import pytest
 from c2c import db, load, state
 from c2c.errors import InternalError, UsageError
 
-from conftest import MINI_BOOKS, MINI_WINDOW
+from conftest import MINI_BOOKS, MINI_WINDOW, c2c, signed_config
 
 FIRST, LAST = MINI_WINDOW
 
@@ -154,3 +154,115 @@ def test_books_without_a_manifest_have_no_identity(con, tmp_path):
     assert con.execute("SELECT count(*) FROM state.books").fetchone() == (0,)
     state.check_books(con, _books_with_manifest(tmp_path / "a", "one\n"))
     state.check_books(con, bare)  # still not refused once the warehouse holds other books
+
+
+# ------------------------------------------------------------------ close --month on a copy of the books
+
+MONTHS = ["2024-10", "2024-11", "2024-12"]
+
+
+class Scratch:
+    """A temporary warehouse and a signed copy of the configuration, for one books directory."""
+
+    def __init__(self, tmp_path, books):
+        self.books = books
+        self.warehouse = tmp_path / "w.duckdb"
+        self.config, self.signoff = signed_config(tmp_path)
+
+    def close(self, month: str):
+        return c2c("close", "--month", month, "--books", str(self.books), "--warehouse", str(self.warehouse),
+                   "--config", str(self.config), "--json", env={"C2C_SIGNOFF_DIR": str(self.signoff)})
+
+    def query(self, sql: str):
+        with db.connect(self.warehouse, read_only=True) as con:
+            return con.execute(sql).fetchall()
+
+    def statuses(self) -> dict[str, str]:
+        return dict(self.query("SELECT month, status FROM state.close_state ORDER BY month"))
+
+
+@pytest.fixture(scope="module")
+def closed_through_december(tmp_path_factory):
+    scratch = Scratch(tmp_path_factory.mktemp("closed-state"), MINI_BOOKS)
+    first = scratch.close("2024-12")
+    assert first.code == 0, first.stderr
+    return scratch, first.json
+
+
+def test_closing_december_closes_october_to_december_in_order(closed_through_december):
+    scratch, done = closed_through_december
+    assert done["close_status"] == "closed"
+    assert scratch.statuses() == {m: "closed" for m in MONTHS}
+    assert [m for (m,) in scratch.query("SELECT DISTINCT month FROM ctl.control_results ORDER BY month")] == MONTHS
+    stored = scratch.query("SELECT month, input_digest, result_hash, restated_from FROM state.close_state ORDER BY month")
+    assert all(digest and result and restated is None for _, digest, result, restated in stored)
+    assert done["result_hash"] == stored[-1][2]
+    assert len({digest for _, digest, _, _ in stored}) == len(MONTHS)
+
+
+def test_a_second_close_is_unchanged_and_records_nothing(closed_through_december):
+    scratch, first = closed_through_december
+    before = scratch.query("SELECT * FROM state.close_state ORDER BY month")
+    results = scratch.query("SELECT count(*) FROM ctl.control_results")
+
+    again = scratch.close("2024-12")
+
+    assert again.code == 0, again.stderr
+    assert again.json["close_status"] == "unchanged"
+    assert again.json["result_hash"] == first["result_hash"]
+    assert again.json["controls"] == first["controls"]
+    assert scratch.query("SELECT * FROM state.close_state ORDER BY month") == before
+    assert scratch.query("SELECT count(*) FROM ctl.control_results") == results
+
+
+def test_an_earlier_month_that_is_closed_is_unchanged_when_asked_for_again(closed_through_december):
+    scratch, _ = closed_through_december
+    again = scratch.close("2024-11")
+    assert again.code == 0, again.stderr
+    assert again.json["close_status"] == "unchanged"
+    assert scratch.statuses() == {m: "closed" for m in MONTHS}
+
+
+@pytest.mark.parametrize("month", ["2024-09", "2026-04"])
+def test_a_month_outside_the_window_exits_2_naming_the_range(tmp_path, month):
+    scratch = Scratch(tmp_path, MINI_BOOKS)
+    done = scratch.close(month)
+    assert done.code == 2, done.stderr
+    assert f"{FIRST}..{LAST}" in done.json["message"]
+    assert not scratch.warehouse.exists()
+
+
+def test_a_warehouse_holding_other_books_exits_2(closed_through_december, tmp_path):
+    scratch, _ = closed_through_december
+    other = tmp_path / "other"
+    assert c2c("gen", "--fixture", "mini", "--seed", "2", "--out", str(other)).code == 0
+    copy = Scratch(tmp_path, other / "books")
+    shutil.copy(scratch.warehouse, copy.warehouse)
+
+    done = copy.close("2024-12")
+
+    assert done.code == 2, done.stderr
+    assert "holds books" in done.json["message"]
+
+
+def test_a_control_failure_in_november_leaves_it_and_december_open(tmp_path):
+    books = tmp_path / "books"
+    shutil.copytree(MINI_BOOKS, books)
+    path = books / "gl.csv"
+    lines = path.read_text(encoding="utf-8").splitlines()
+    header = lines[0].split(",")
+    period, account, amount = header.index("gl_period"), header.index("gl_account"), header.index("amount_cents")
+    index = next(i for i, line in enumerate(lines[1:], 1)
+                 if line.split(",")[period] == "2024-11" and line.split(",")[account] == "1200")
+    fields = lines[index].split(",")
+    fields[amount] = str(int(fields[amount]) + 100)
+    lines[index] = ",".join(fields)
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    scratch = Scratch(tmp_path, books)
+
+    done = scratch.close("2024-12")
+
+    assert done.code == 3, done.stderr
+    assert [c["id"] for c in done.json["failed_controls"]] == ["CTL-TIE-AR"]
+    assert "2024-11" in done.json["message"]
+    assert scratch.statuses() == {"2024-10": "closed", "2024-11": "open", "2024-12": "open"}

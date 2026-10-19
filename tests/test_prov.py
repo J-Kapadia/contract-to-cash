@@ -84,5 +84,7 @@ def test_the_digest_changes_when_a_source_row_changes(closed, tmp_path):
             "SELECT min(c.crm_account_id) FROM raw.invoices i JOIN raw.contracts c USING (contract_id)"
             " WHERE i.invoice_id = ?", [edited["invoice_id"]]).fetchone()
     changed = {n for n in before if before[n] != after[n]}
-    assert changed == {f"ar/{MONTH}/{owner}/closing"}
+    # The payment is February's, so February is rebuilt, and March with it: it builds on February.
+    assert edited["applied_on"].startswith("2026-02")
+    assert changed == {f"ar/{m}/{owner}/closing" for m in ("2026-02", MONTH)}
     assert set(before) == set(after)

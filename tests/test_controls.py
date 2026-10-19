@@ -15,6 +15,7 @@ from control_ids import expected_ids
 
 MONTH = "2026-03"
 EDITED_ENTRY = "je_000002"  # a GL 1200 line of January
+EDITED_MONTH = "2026-01"  # the close stops at the first month that fails
 
 
 def edit_gl_line(books, entry_id: str, extra_cents: int) -> None:
@@ -62,7 +63,7 @@ def test_editing_a_gl_1200_line_fails_the_close_with_a_remediation_naming_it(clo
     with db.connect(warehouse, read_only=True) as con:
         assert con.execute("SELECT status, violating_rows FROM ctl.control_results"
                            " WHERE control_id = 'CTL-TIE-AR' AND month = ? ORDER BY rowid DESC LIMIT 1",
-                           [MONTH]).fetchone() == ("fail", 1)
+                           [EDITED_MONTH]).fetchone() == ("fail", 1)
 
 
 def test_a_failed_close_does_not_write_provenance_for_the_month(closed, tmp_path):

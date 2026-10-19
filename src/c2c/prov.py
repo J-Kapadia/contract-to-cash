@@ -90,9 +90,11 @@ def ar_source_query(customer_id: str, month: str) -> str:
     )
 
 
-def write_ar_closing(con: duckdb.DuckDBPyConnection, month: str, checks_passed: Sequence[str] = (),
-                     run_id: str | None = None) -> int:
-    """Write `ar/<month>/<customer_id>/closing` for every customer of the AR roll-forward; returns the count."""
+def write_month(con: duckdb.DuckDBPyConnection, month: str, checks_passed: Sequence[str] = (),
+                run_id: str | None = None) -> int:
+    """Write the provenance of every number published for `month`; returns the count.
+
+    Today that is `ar/<month>/<customer_id>/closing` for every customer of the AR roll-forward."""
     run_id = run_id or uuid.uuid4().hex
     rows = con.execute("SELECT customer_id, closing_cents FROM mart.fct_ar_rollforward"
                        " WHERE month = ? AND customer_id IS NOT NULL ORDER BY customer_id", [month]).fetchall()
@@ -106,3 +108,12 @@ def write_ar_closing(con: duckdb.DuckDBPyConnection, month: str, checks_passed: 
         con.execute("ROLLBACK")
         raise
     return len(rows)
+
+
+def result_hash(con: duckdb.DuckDBPyConnection, month: str) -> str | None:
+    """SHA-256 over the month's rows of the AR roll-forward, or None when there is no such table."""
+    if con.execute("SELECT count(*) FROM information_schema.tables"
+                   " WHERE table_schema = 'mart' AND table_name = 'fct_ar_rollforward'").fetchone()[0] == 0:
+        return None
+    rows = con.execute("SELECT * FROM mart.fct_ar_rollforward WHERE month = ? ORDER BY customer_id", [month]).fetchall()
+    return digest([repr(row) for row in rows])
