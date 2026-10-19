@@ -1,0 +1,45 @@
+version: 2
+
+models:
+  - name: fc_contracts_renewal
+    description: >
+      Forecast contracts for the subscriptions that expire within 12 months after the as-of date:
+      per case, one `renewal` row and one `expansion` row per expiring subscription line, at the
+      line's annual fee times the case's cohort rate, starting the day after the term ends with the
+      same billing frequency and payment terms.
+    columns:
+      - name: as_of
+        data_tests: [not_null]
+      - name: case
+        quote: true
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [base, downside, upside]
+      - name: source
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [renewal, expansion]
+      - name: customer_id
+        data_tests: [not_null]
+      - name: contract_id
+        data_tests: [not_null]
+      - name: line_id
+        data_tests: [not_null]
+      - name: term_start
+        data_tests: [not_null]
+      - name: term_end
+        data_tests: [not_null]
+      - name: billing_frequency
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [annual, quarterly]
+      - name: payment_terms_days
+        data_tests: [not_null]
+      - name: annual_fee_cents
+        data_tests: [not_null]
