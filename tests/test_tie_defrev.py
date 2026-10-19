@@ -1,6 +1,6 @@
 """CTL-TIE-DEFREV: deferred revenue ties to GL 2400 to the cent. It passes on the clean `mini` books and
 fails the close, naming the ledger entry, the cents and the month, when a recognition entry is changed
-(and stays balanced) or a 2400 line is moved by a cent."""
+(and stays balanced, so CTL-TIE-REV also reports the moved 4000 line) or a 2400 line is moved by a cent."""
 
 from __future__ import annotations
 
@@ -26,10 +26,10 @@ def close(books: Path, warehouse: Path):
     return c2c("close", "--month", MONTH, "--books", str(books), "--warehouse", str(warehouse), "--json")
 
 
-def assert_named(done, entry_id: str, cents: int, warehouse: Path) -> None:
+def assert_named(done, entry_id: str, cents: int, warehouse: Path, also: tuple[str, ...] = ()) -> None:
     assert done.code == 3, done.stderr
-    assert [c["id"] for c in done.json["failed_controls"]] == [CONTROL]
-    [failed] = done.json["failed_controls"]
+    assert [c["id"] for c in done.json["failed_controls"]] == [CONTROL, *also]
+    failed = done.json["failed_controls"][0]
     assert failed["violating_rows"] == 1
     [remediation] = failed["remediation"]
     assert entry_id in remediation and f"{cents} cents" in remediation and MONTH in remediation
@@ -64,7 +64,12 @@ def test_a_changed_recognition_entry_that_stays_balanced_fails_the_close_naming_
     warehouse = tmp_path / "w.duckdb"
     done = close(out, warehouse)
 
-    assert_named(done, old["entry_id"], -slip, warehouse)
+    # The altered entry also moves GL 4000 activity, so recognised revenue stops tying in the same month.
+    assert_named(done, old["entry_id"], -slip, warehouse, also=("CTL-TIE-REV",))
+    revenue = done.json["failed_controls"][1]
+    assert revenue["violating_rows"] == 1
+    [remediation] = revenue["remediation"]
+    assert old["entry_id"] in remediation and f"{slip} cents" in remediation and "GL 4000" in remediation
 
 
 def test_one_cent_on_a_2400_line_is_named_the_same_way(tmp_path):
