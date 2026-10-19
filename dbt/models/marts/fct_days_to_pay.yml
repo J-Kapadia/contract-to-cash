@@ -1,0 +1,22 @@
+version: 2
+
+models:
+  - name: fct_days_to_pay
+    description: >
+      Days to pay per month and customer: the lower median and the nearest-rank 80th percentile of
+      the days from invoice date to the date the invoice was fully paid, over the invoices paid in
+      the trailing window. A customer with too few paid invoices takes the pooled values (the row
+      with customer_id '*') and has fallback true.
+    columns:
+      - name: month
+        data_tests: [not_null]
+      - name: customer_id
+        data_tests: [not_null]
+      - name: paid_invoices
+        data_tests: [not_null]
+      - name: median_days
+        data_tests: [not_null]
+      - name: p80_days
+        data_tests: [not_null]
+      - name: fallback
+        data_tests: [not_null]
