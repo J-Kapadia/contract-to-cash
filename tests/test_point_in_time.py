@@ -72,8 +72,10 @@ def test_the_staged_inputs_are_the_policys_cases_for_the_as_of_date(mini_closed_
     assert {r[0] for r in rows} == {AS_OF}
     assert {r[1] for r in rows} == {"base", "downside", "upside"}
     assert {(r[1], r[2]): r[3] for r in rows}[("downside", "pipeline_shift_days")] == cases.downside.pipeline_shift_days
-    assert not any(r[4] for r in rows)
-    assert len(rows) == 3 * 9
+    drivers = [r for r in rows if not r[2].startswith("rate_")]
+    assert len(drivers) == 3 * 9
+    assert not any(r[4] for r in drivers)
+    assert len(rows) == 3 * 9 + 3 * 9  # plus each of the nine measured rates under each case
 
 
 def test_fc_build_is_dropped_when_a_build_starts(mini_closed_copy):

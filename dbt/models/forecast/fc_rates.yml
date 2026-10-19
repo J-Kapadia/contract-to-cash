@@ -1,0 +1,31 @@
+version: 2
+
+models:
+  - name: fc_rates
+    description: >
+      The measured renewal, expansion and stage win rates as known on the as-of date, in basis
+      points, with the number of observations behind each and the fallback used when there were
+      too few: `none`, `pooled` (both cohorts together) or `default` (the policy's own value).
+      Nine rows: renewal and expansion for the cohorts `first` and `later`, and a win rate for
+      each of S1..S5.
+    columns:
+      - name: as_of
+        data_tests: [not_null]
+      - name: kind
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [renewal, expansion, win]
+      - name: cohort_or_stage
+        data_tests: [not_null]
+      - name: rate_bps
+        data_tests: [not_null]
+      - name: observations
+        data_tests: [not_null]
+      - name: fallback
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [none, pooled, default]
