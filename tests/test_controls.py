@@ -11,6 +11,7 @@ from c2c import controls, db
 from c2c.errors import ControlFailure, InternalError
 
 from conftest import c2c
+from control_ids import expected_ids
 
 MONTH = "2026-03"
 EDITED_ENTRY = "je_000002"  # a GL 1200 line of January
@@ -36,10 +37,7 @@ def test_a_clean_close_reports_every_control_as_passing(closed, tmp_path):
                "--json")
     assert done.code == 0, done.stderr
     assert done.json["controls"] == [{"id": control, "status": "pass", "violating_rows": 0}
-                                     for control in ("CTL-DUP-INVOICE", "CTL-DUP-PAYMENT", "CTL-REF-INTEGRITY",
-                                                   "CTL-BANK-UNMATCHED", "CTL-BILL-CONTRACT", "CTL-CASH-APP",
-                                                   "CTL-CUTOFF", "CTL-MASTER-ANCHOR", "CTL-MASTER-REVIEW",
-                                                   "CTL-TIE-AR")]
+                                     for control in expected_ids()]
 
 
 def test_editing_a_gl_1200_line_fails_the_close_with_a_remediation_naming_it(closed, tmp_path):
@@ -111,3 +109,13 @@ def test_the_month_is_bound_as_a_parameter_and_other_stages_are_left_alone(tmp_p
         assert raised.value.failed_controls[0]["remediation"] == ["Month 2026-02 has a problem in x."]
         assert con.execute("SELECT control_id, status, violating_rows FROM ctl.control_results").fetchall() == [
             ("CTL-DEMO", "fail", 1)]
+
+
+def test_expected_ids_follow_stage_order_then_file_name(tmp_path):
+    directory = control_dir(tmp_path, "-- remediation: Fix {thing}.\n-- stage: mart\nselect 'x' as thing\n")
+    for name, stage in (("CTL-B-RAW", "raw"), ("CTL-A-RAW", "raw"), ("CTL-A-MART", "mart")):
+        (directory / f"{name}.sql").write_text(f"-- remediation: Fix {{thing}}.\n-- stage: {stage}\n"
+                                               "select 'x' as thing\n", encoding="utf-8")
+    assert expected_ids(directory=directory) == ["CTL-A-RAW", "CTL-B-RAW", "CTL-A-MART", "CTL-DEMO"]
+    assert expected_ids(("mart", "raw"), directory) == ["CTL-A-MART", "CTL-DEMO", "CTL-A-RAW", "CTL-B-RAW"]
+    assert expected_ids(("raw",), directory) == ["CTL-A-RAW", "CTL-B-RAW"]

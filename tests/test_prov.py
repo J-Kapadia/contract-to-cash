@@ -11,6 +11,7 @@ import pytest
 from c2c import db, prov
 
 from conftest import c2c
+from control_ids import expected_ids
 
 MONTH = "2026-03"
 
@@ -52,9 +53,7 @@ def test_a_close_writes_one_record_per_customer_month(closed):
     for number_id, cents, unit, step, count, checks, signer in records:
         customer = number_id.split("/")[2]
         assert (cents, unit, step, signer) == (closing[customer], "cents", "fct_ar_rollforward", None)
-        assert count >= 1 and checks == ["CTL-DUP-INVOICE", "CTL-DUP-PAYMENT", "CTL-REF-INTEGRITY", "CTL-BANK-UNMATCHED",
-                                      "CTL-BILL-CONTRACT", "CTL-CASH-APP", "CTL-CUTOFF", "CTL-MASTER-ANCHOR",
-                                      "CTL-MASTER-REVIEW", "CTL-TIE-AR"]
+        assert count >= 1 and checks == expected_ids()
 
 
 def test_the_digest_changes_when_a_source_row_changes(closed, tmp_path):
