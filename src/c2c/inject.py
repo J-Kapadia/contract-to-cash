@@ -10,7 +10,7 @@ The errors, and what each one does to the copy:
 
     duplicate_customer   a new billing customer for the target customer, under a variant of its name
                          that scores in the doubt band, with one of the customer's invoices moved to it
-    wrong_period         the general-ledger entries of the target invoice move to the period before
+    wrong_period         the general-ledger entries of an invoice of the month before move into the planted month
     misapplied_payment   the target payment is re-pointed to another customer's open invoice
     unbilled_amendment   an amendment version of the target contract, its prorated invoice not issued
     defrev_gl_slip       the target 2400 recognition entry changes by an amount, 4000 side included
@@ -19,11 +19,20 @@ The errors, and what each one does to the copy:
 
 Choices made where the brief is silent: the target is the answer key's row, whatever the seed (the seed
 only draws the details: the invoice or payment affected, the day, the amount, the spelling); the
-wrong period is the one before the invoice's, because a close reads ledger periods only up to the
-month it closes, so entries moved forward from the planted month would never be seen by that close;
+wrong period is the one after the invoice's, and the invoice is one dated in the month before the
+planted month (the answer key's row for this error is not used): entries moved past the month a close
+reads would never be seen by it, so the entries land in the planted month and the close that loads it
+reads the invoice's month as the one with entries in another period;
 the manifest of the copy lists every file of the copy, under the digests of the generator and
 configuration recorded beside the source books when there are any; a row that is added, edited or
 removed counts as changed, named by its file's sort key.
+
+`inject_all` plants every error in one copy, each in its own month: the seven months that end with the
+answer key's month, in the order of `PLANTED_ORDER`: the wrong period comes first, so the month its
+invoice is moved out of is one no other error touches. The error whose month is the answer
+key's uses the answer key's row; each other one draws its row, with the same seeded rule, from the
+rows of the clean books that month. The rows are drawn from the clean books, so a subset of the errors
+plants the same rows as the full set.
 """
 
 from __future__ import annotations
@@ -194,7 +203,7 @@ def apply_wrong_period(books_dir: Path, target: Mapping, rng: random.Random) -> 
     if not entries:
         raise PreconditionError(f"no ledger entry of invoice {target['key']['invoice_id']} to move.")
     for position in entries:
-        gl.set(position, gl_period=month_of(month_start(gl.rows[position][0]["gl_period"]) - timedelta(days=1)))
+        gl.set(position, gl_period=month_of(month_end(gl.rows[position][0]["gl_period"]) + timedelta(days=1)))
     return books.save()
 
 
@@ -292,6 +301,78 @@ APPLY: dict[str, Callable[[Path, Mapping, random.Random], list[dict]]] = {
 assert tuple(APPLY) == INJECT_ERRORS
 
 
+# ------------------------------------------------------------------ where each error lands
+
+def _previous(month: str) -> str:
+    return month_of(month_start(month) - timedelta(days=1))
+
+
+def _targets_duplicate_customer(books: Books, month: str) -> tuple[str, list[tuple[str, dict]]]:
+    billed = {r["billing_customer_id"] for r, _ in books["invoices"].rows if _in_month(r["invoice_date"], month)}
+    return "billing_customers", [(r["crm_account_ref"], {"billing_customer_id": r["billing_customer_id"]})
+                                 for r, _ in books["billing_customers"].rows
+                                 if r["billing_customer_id"] in billed and r["crm_account_ref"]]
+
+
+def _targets_wrong_period(books: Books, month: str) -> tuple[str, list[tuple[str, dict]]]:
+    before = _previous(month)
+    moved = {r["source_ref"] for r, _ in books["gl"].rows if r["gl_period"] == before}
+    return "invoices", [("", {"invoice_id": i}) for i in sorted({r["invoice_id"] for r, _ in books["invoices"].rows
+                                                              if _in_month(r["invoice_date"], before)}) if i in moved]
+
+
+def _targets_misapplied_payment(books: Books, month: str) -> tuple[str, list[tuple[str, dict]]]:
+    return "payments", [("", {"payment_id": r["payment_id"]}) for r, _ in books["payments"].rows
+                        if _in_month(r["applied_on"], month)]
+
+
+def _targets_unbilled_amendment(books: Books, month: str) -> tuple[str, list[tuple[str, dict]]]:
+    first, last = month_start(month).isoformat(), month_end(month).isoformat()
+    versions: dict[str, int] = {}
+    for r, _ in books["contracts"].rows:
+        versions[r["contract_id"]] = versions.get(r["contract_id"], 0) + 1
+    return "contracts", [(r["crm_account_id"], {"contract_id": r["contract_id"]}) for r, _ in books["contracts"].rows
+                         if versions[r["contract_id"]] == 1 and r["term_start"] < last and r["term_end"] >= first]
+
+
+def _targets_defrev_gl_slip(books: Books, month: str) -> tuple[str, list[tuple[str, dict]]]:
+    return "gl", [("", {"entry_id": r["entry_id"], "line_no": r["line_no"]}) for r, _ in books["gl"].rows
+                  if r["gl_period"] == month and r["gl_account"] == "2400" and r["source_ref"].startswith("rec:")]
+
+
+def _targets_orphan_bank_txn(books: Books, month: str) -> tuple[str, list[tuple[str, dict]]]:
+    applied = {r["bank_txn_id"] for r, _ in books["payments"].rows}
+    return "bank_transactions", [("", {"bank_txn_id": r["bank_txn_id"]}) for r, _ in books["bank_transactions"].rows
+                                 if int(r["amount_cents"]) > 0 and _in_month(r["posted_on"], month)
+                                 and r["bank_txn_id"] in applied]
+
+
+def _targets_rounding_slip(books: Books, month: str) -> tuple[str, list[tuple[str, dict]]]:
+    return "gl", [("", {"entry_id": r["entry_id"], "line_no": r["line_no"]}) for r, _ in books["gl"].rows
+                  if r["gl_period"] == month and r["gl_account"] == "1200"]
+
+
+CANDIDATES = {error: globals()[f"_targets_{error}"] for error in INJECT_ERRORS}
+
+
+def draw_target(books_dir: Path, error: str, month: str, seed: int) -> dict:
+    """The row `error` targets in `month`, drawn from the rows of the books in that month."""
+    table, pool = CANDIDATES[error](Books(books_dir), month)
+    if not pool:
+        raise PreconditionError(f"no row of {table} in {month} can carry the {error} error.")
+    pool.sort(key=lambda c: tuple(str(v) for v in c[1].values()))
+    customer, key = random.Random(f"{seed}:inject:{error}").choice(pool)
+    return {"table": table, "key": key, "customer": customer, "month": month}
+
+
+def months_for(last: str, count: int = len(INJECT_ERRORS)) -> list[str]:
+    """The `count` months that end with `last`, earliest first."""
+    months = [last]
+    while len(months) < count:
+        months.insert(0, _previous(months[0]))
+    return months
+
+
 # ------------------------------------------------------------------ the command's work
 
 @dataclass(frozen=True)
@@ -328,15 +409,49 @@ def write_manifest(books: Path, out: Path, preset: str, seed: int) -> Path:
     return path
 
 
-def inject(books: Path, truth: Path, out: Path, error: str, seed: int) -> Injected:
+def _fresh_copy(books: Path, out: Path) -> None:
     if not (books / "window.json").is_file():
         raise PreconditionError(f"no books at {books}: window.json is missing; generate them first.")
-    target, planted = target_of(truth, error)
     if out.exists() and any(out.iterdir()):
         raise UsageError(f"{out} is not empty: inject writes a fresh copy of the books there.")
     out.mkdir(parents=True, exist_ok=True)
     for path in sorted(books.iterdir()):
         if path.is_file() and path.name != MANIFEST:
             shutil.copyfile(path, out / path.name)
+
+
+def target_in(books: Path, truth: Path, error: str, month: str, seed: int) -> dict:
+    """The target of `error` in `month`: the answer key's row when it names that month, else a drawn one."""
+    target, planted = target_of(truth, error)
+    if target["month"] == month and error != "wrong_period":
+        return target
+    return draw_target(books, error, month, seed)
+
+
+def inject(books: Path, truth: Path, out: Path, error: str, seed: int) -> Injected:
+    target, planted = target_of(truth, error)
+    _fresh_copy(books, out)
+    target = target_in(books, truth, error, target["month"], seed)
     changed = APPLY[error](out, target, random.Random(f"{seed}:inject:{error}"))
     return Injected(error, target["month"], changed, write_manifest(books, out, planted["preset"], seed))
+
+
+PLANTED_ORDER = ("wrong_period", *(e for e in INJECT_ERRORS if e != "wrong_period"))
+
+
+def plan_all(truth: Path) -> dict[str, str]:
+    """The month each error is planted in by `inject_all`: the seven months that end with the answer key's."""
+    _, planted = target_of(truth, INJECT_ERRORS[0])
+    return dict(zip(PLANTED_ORDER, months_for(planted["inject_month"])))
+
+
+def inject_all(books: Path, truth: Path, out: Path, seed: int, errors: tuple[str, ...] = INJECT_ERRORS) -> list[Injected]:
+    """One copy with `errors` planted, each in its own month; the manifest is written once, so it is on the last."""
+    months = plan_all(truth)
+    _, planted = target_of(truth, INJECT_ERRORS[0])
+    _fresh_copy(books, out)
+    targets = {error: target_in(books, truth, error, months[error], seed) for error in errors}
+    done = [Injected(error, months[error], APPLY[error](out, targets[error], random.Random(f"{seed}:inject:{error}")), out / MANIFEST)
+            for error in errors]
+    write_manifest(books, out, planted["preset"], seed)
+    return done

@@ -88,7 +88,7 @@ def test_the_changed_rows_are_in_the_planted_month(injected):
     assert planted()["inject_month"] == MONTH
     for (file, _), (before, after) in changed_rows(out).items():
         stem = file.removesuffix(".csv")
-        row = before or after
+        row = after or before
         assert row[MONTH_COLUMN[stem]][:7] == MONTH, (file, row)
 
 
@@ -119,12 +119,14 @@ def test_duplicate_customer_adds_a_variant_billing_customer_with_an_invoice(tmp_
     assert [r for r in rows(tmp_path / "o" / "invoices.csv") if r["billing_customer_id"] == added[0]["billing_customer_id"]]
 
 
-def test_wrong_period_moves_the_invoice_entries_to_the_previous_period(tmp_path):
+def test_wrong_period_moves_the_entries_of_an_earlier_invoice_into_the_planted_month(tmp_path):
     inject("wrong_period", tmp_path / "o")
-    invoice = planted()["errors"]["wrong_period"]["key"]["invoice_id"]
-    for (_, _), (before, after) in changed_rows(tmp_path / "o").items():
-        assert before["source_ref"] == invoice and before["gl_period"] == MONTH
-        assert after == {**before, "gl_period": "2025-12"}
+    changes = list(changed_rows(tmp_path / "o").values())
+    assert changes and len({before["source_ref"] for before, _ in changes}) == 1
+    invoice_date = {r["invoice_id"]: r["invoice_date"] for r in rows(MINI_BOOKS / "invoices.csv")}
+    for before, after in changes:
+        assert invoice_date[before["source_ref"]].startswith("2025-12") and before["gl_period"] == "2025-12"
+        assert after == {**before, "gl_period": MONTH}
 
 
 def test_misapplied_payment_points_to_another_customers_open_invoice(tmp_path):
@@ -189,9 +191,30 @@ def test_no_error_exits_2(tmp_path):
     assert c2c("inject", "--books", str(MINI_BOOKS), "--out", str(tmp_path / "o")).code == 2
 
 
-def test_all_is_not_available_yet(tmp_path):
+def test_all_writes_one_copy_with_every_error_in_its_own_month(tmp_path):
     result = c2c("inject", "--all", "--books", str(MINI_BOOKS), "--out", str(tmp_path / "o"), "--json")
-    assert result.code == 2 and "not available" in result.json["message"]
+    assert result.code == 0, result.stderr
+    errors = result.json["errors"]
+    assert sorted(e["error"] for e in errors) == sorted(INJECT_ERRORS)
+    assert sorted(e["month"] for e in errors) == ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12", MONTH]
+    assert all(e["rows"] for e in errors)
+    named = {(c["file"], tuple(str(c["key"][col]) for col in BOOKS[c["file"].removesuffix(".csv")][1]))
+             for c in result.json["changed"]}
+    assert named == set(changed_rows(tmp_path / "o"))
+    recorded = read_manifest(tmp_path / "o" / MANIFEST)
+    assert recorded.files == {n: hashlib.sha256(b).hexdigest() for n, b in tree(tmp_path / "o").items() if n != MANIFEST}
+
+
+def test_all_plants_the_same_rows_whatever_subset_is_planted(tmp_path):
+    from c2c.inject import inject_all
+    full = {p.error: p.changed for p in inject_all(MINI_BOOKS, MINI_TRUTH, tmp_path / "full", 1)}
+    part = {p.error: p.changed for p in inject_all(MINI_BOOKS, MINI_TRUTH, tmp_path / "part", 1, ("rounding_slip", "orphan_bank_txn"))}
+    assert part == {e: full[e] for e in part}
+
+
+def test_all_and_an_error_together_exit_2(tmp_path):
+    result = c2c("inject", "--all", "--error", "rounding_slip", "--books", str(MINI_BOOKS), "--out", str(tmp_path / "o"), "--json")
+    assert result.code == 2 and not (tmp_path / "o").exists()
 
 
 def test_a_non_empty_out_is_refused_and_left_alone(tmp_path):
