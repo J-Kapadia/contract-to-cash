@@ -88,6 +88,7 @@ class Policy:
     renewal_review_days: int
     renewal_review_acv_percentile: int
     driver_review_bps: int
+    drift_volume_shift_bps: int
     backtest_min_history_months: int
     nrr_window_months: int
 
@@ -101,7 +102,7 @@ class Match:
 
 
 # Keys held to 0..10000 (a share), and keys held to 1..100 (a nearest-rank percentile).
-_SHARES = {"jaccard_min_bps", "stale_opp_weight_bps", "driver_review_bps", "S1", "S2", "S3", "S4", "S5",
+_SHARES = {"jaccard_min_bps", "stale_opp_weight_bps", "driver_review_bps", "drift_volume_shift_bps", "S1", "S2", "S3", "S4", "S5",
            "renewal_down_bps", "renewal_up_bps", "cloud_up_bps"}
 _PERCENTILES = {"renewal_review_acv_percentile", "collections_percentile"}
 _FLAGS = {"collections_cap_at_terms"}
