@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Definition of done: the commands that must pass before a unit of work counts as done.
 # Meant to run on a clean `git archive HEAD` extraction (committed state only), not the working tree.
-# The test commands are appended as they land.
+# The product commands are fragments in scripts/dod.d/; the hygiene guard, bootstrap and tests stay here.
 #
 #   scripts/definition-of-done.sh [--fast]
 #
@@ -10,6 +10,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+start=$SECONDS
 fast=0
 case "${1:-}" in
   "") ;;
@@ -19,7 +20,7 @@ esac
 
 fail() { echo "definition-of-done: $1" >&2; exit 1; }
 
-bash -n scripts/*.sh scripts/pre-push tests/*.sh
+bash -n scripts/*.sh scripts/dod.d/*.sh scripts/pre-push tests/*.sh
 
 # Hygiene guard: generated data and build output must stay out of git, and so must secrets.
 # The exact line must be in .gitignore; where .git exists git must agree.
@@ -70,20 +71,19 @@ uv sync --frozen
 uv lock --check
 uv run c2c --version
 
-# The skeleton end to end: generate, close, explain a number, write the memo and find a number id in it.
-uv run c2c gen --fixture small
-# A close needs a sign-off of the configuration in force. The scratch sign-off below stands in
-# until a reviewed fixture configuration exists; the committed fixture sign-off replaces this once
-# the reviewed fixture config exists.
-signoff_dir=$(mktemp -d)
-uv run python -c 'from c2c.signoff import write_for; write_for("config", __import__("sys").argv[1], "dod scratch (synthetic)", "finance_lead", "2026-01-01")' "$signoff_dir"
-C2C_SIGNOFF_DIR="$signoff_dir" uv run c2c close --month 2026-03 --fixture small --config config --json >/dev/null
-rm -rf "$signoff_dir"
-uv run c2c explain ar/2026-03/acct_0001/closing --fixture small >/dev/null
-memo_out=$(mktemp -d)
-uv run c2c memo --month 2026-03 --fixture small --out "$memo_out"
-grep -rq data-num-id "$memo_out"
-rm -rf "$memo_out"
+# The product commands live in numbered fragments under scripts/dod.d/, run in name order so each
+# new command lands as a file of its own. A fragment gets `fast`, a shared scratch directory `work`
+# and `fixture_config`, and runs from the repository root.
+export fast
+export work
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+export fixture_config=tests/fixtures/config
+for fragment in scripts/dod.d/[0-9][0-9]_*.sh; do
+  [ -e "$fragment" ] || break
+  echo "definition-of-done: running $fragment"
+  bash -euo pipefail "$fragment" || fail "fragment $fragment failed"
+done
 
 # Only c2c.db opens a DuckDB connection (the test wrapper that applies the same caps is the one other place).
 if grep -rn 'duckdb\.connect(' src tests --include='*.py' | grep -v -e '^src/c2c/db\.py:' -e '^tests/conftest\.py:'; then
@@ -99,4 +99,4 @@ if [ -n "$(find tests -name 'test_*.py' -print -quit 2>/dev/null)" ]; then
   fi
 fi
 
-echo "definition-of-done: passed"
+echo "definition-of-done: passed in $((SECONDS - start))s (fast=$fast)"
