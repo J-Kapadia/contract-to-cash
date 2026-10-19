@@ -89,6 +89,7 @@ escalate_days_past_due: 60            # ... once this many days past due
 renewal_review_days: 90               # renewals expiring within this many days are reviewed
 renewal_review_acv_percentile: 75     # ... when their ACV is at or above this nearest-rank percentile
 driver_review_bps: 1000               # a driver moving 13-week net cash by this share of it is reviewed
+drift_volume_shift_bps: 5000            # a source file whose monthly row count moves by this share against the prior month is listed as a volume shift
 
 # History needed.
 backtest_min_history_months: 12       # closed months before an as-of month needed to backtest it
