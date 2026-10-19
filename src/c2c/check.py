@@ -7,7 +7,9 @@ a named check in the same shape as a control:
   revenue and receivables equal the key to the cent;
 - `CHK-TRUTH-IDENTITIES`: the customer master's clusters are the key's customers;
 - `CHK-PROV-COVERAGE`: every number the month's family files publish has a provenance record with
-  the same value.
+  the same value;
+
+and, once those pass, the control `CTL-PROV` re-derives the digest of every recorded number.
 
 A difference is `{number_id, expected, actual}` in the failed check's `detail`. The connection is
 only read from, so a check changes no state and no mart.
@@ -21,7 +23,7 @@ from pathlib import Path
 
 import duckdb
 
-from . import master, prov
+from . import controls, master, prov
 from .errors import C2CError, CheckMismatch, ControlFailure, PreconditionError, ProvenanceError
 
 ROLLFORWARD_FILE = "expected_rollforward.csv"
@@ -156,7 +158,8 @@ def close_check(con: duckdb.DuckDBPyConnection, month: str, truth_dir: str | Pat
     """Compare the closed `month` and the months before it with the answer key.
 
     Returns the checks that passed, as control summaries. Raises `CheckFailed` (exit 5) naming every
-    difference, or, when only provenance is incomplete, `ProvenanceMissing` (exit 6)."""
+    difference, or, when only provenance is incomplete, `ProvenanceMissing` (exit 6); a digest that
+    does not re-derive is `controls.ProvenanceMismatch` (exit 6)."""
     require_truth(truth_dir)
     failed = []
     for check_id, differences in ((ROLLFORWARD_ID, rollforward_differences(con, truth_dir, month)),
@@ -172,4 +175,4 @@ def close_check(con: duckdb.DuckDBPyConnection, month: str, truth_dir: str | Pat
         raise ProvenanceMissing(f"{len(missing)} number(s) of {month} and earlier months have no matching "
                                 f"provenance record: " + ", ".join(d["number_id"] for d in missing[:5])
                                 + (" ..." if len(missing) > 5 else ""), [_failed(PROV_ID, missing)])
-    return [_passed(i) for i in (ROLLFORWARD_ID, IDENTITIES_ID, PROV_ID)]
+    return [controls.prov_control(con, month).summary()] + [_passed(i) for i in (ROLLFORWARD_ID, IDENTITIES_ID, PROV_ID)]

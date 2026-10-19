@@ -117,7 +117,7 @@ def test_check_changes_no_state_and_no_mart(warehouse_copy):
         passed = check.close_check(con, MONTH, MINI_TRUTH)
     finally:
         con.close()
-    assert [c["id"] for c in passed] == CHECK_IDS
+    assert [c["id"] for c in passed] == ["CTL-PROV", *CHECK_IDS]
     assert warehouse_copy.read_bytes() == before
 
 

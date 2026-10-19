@@ -214,6 +214,57 @@ def write_month(con: duckdb.DuckDBPyConnection, month: str, checks_passed: Seque
     return len(records)
 
 
+def _children(con: duckdb.DuckDBPyConnection, number_id: str, month: str | None,
+              cache: dict[tuple[str, str | None], dict[str, list[str]]]) -> list[str]:
+    """The ids a composite is computed from, as its family file declares them for its month."""
+    family = number_id.split("/", 1)[0]
+    key = (family, month)
+    if key not in cache:
+        path = FAMILIES_DIR / f"{family}.sql"
+        rows = family_rows(con, path, month) if path.is_file() else []
+        cache[key] = {r["number_id"]: sorted(set(r["children"] or [])) for r in rows if r["kind"] == COMPOSITE}
+    if number_id not in cache[key]:
+        raise FamilyError(f"{number_id}: its family no longer declares the children it was built from")
+    return cache[key][number_id]
+
+
+def rederive(con: duckdb.DuckDBPyConnection, number_id: str, memo: dict | None = None) -> tuple[str, str]:
+    """`(stored, recomputed)` input digest of a number.
+
+    The stored digest is the one in `prov.records`. The recomputed one comes from what the number is
+    built on now: a leaf's `source_query` run again, a composite's children's recomputed digests (each
+    walked down to its leaves, never taken from the table). A number whose two differ was changed, or
+    something below it was, after it was written. Pass the same `memo` to many calls to walk each shared
+    child once. Raises `FamilyError` when a number or one it is built from has no record."""
+    memo = {} if memo is None else memo
+    records: dict[str, tuple[str, str | None, str | None]] = memo.setdefault("records", {})
+    recomputed: dict[str, str] = memo.setdefault("recomputed", {})
+    families: dict = memo.setdefault("families", {})
+
+    def record(n: str, trail: tuple[str, ...]) -> tuple[str, str | None, str | None]:
+        if n not in records:
+            found = con.execute("SELECT input_digest, source_query, month FROM prov.records WHERE number_id = ?",
+                                [n]).fetchone()
+            if found is None:
+                built = f"{trail[-1]!r} is built from {n!r}, which" if trail else f"{n!r}"
+                raise FamilyError(f"{built} has no record")
+            records[n] = found
+        return records[n]
+
+    def of(n: str, trail: tuple[str, ...]) -> str:
+        if n not in recomputed:
+            if n in trail:
+                raise FamilyError(f"{n!r} is built from itself through {' -> '.join(trail)}")
+            _, query, month = record(n, trail)
+            if query:
+                recomputed[n] = source_digest(con, query)[0]
+            else:
+                recomputed[n] = pair_digest([(c, of(c, trail + (n,))) for c in _children(con, n, month, families)])
+        return recomputed[n]
+
+    return record(number_id, ())[0], of(number_id, ())
+
+
 def result_hash(con: duckdb.DuckDBPyConnection, month: str) -> str | None:
     """SHA-256 over the month's records of the result families, ordered by id; None when it has none.
 
