@@ -1,0 +1,14 @@
+version: 2
+
+models:
+  - name: fct_rollup
+    description: >
+      One row per month and metric for the numbers the memo and the reports print: month totals and
+      counts, what changed since last month, and the customer master's scores. value_cents holds the
+      integer (cents, counts or basis points) and value_text its printed form. The table starts
+      empty and is written after the models are built.
+    columns:
+      - name: month
+      - name: metric
+      - name: value_cents
+      - name: value_text
