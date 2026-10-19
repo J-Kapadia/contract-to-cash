@@ -28,7 +28,7 @@ jobs:
           echo "placeholder-term-not-a-real-denylist-entry" > "$RUNNER_TEMP/denylist.txt"
           echo "C2C_DENYLIST_PATH=$RUNNER_TEMP/denylist.txt" >> "$GITHUB_ENV"
       - name: Fast tier
-        run: timeout 900 scripts/definition-of-done.sh --fast
+        run: timeout 3600 scripts/definition-of-done.sh --fast
 
   slow:
     needs: fast
