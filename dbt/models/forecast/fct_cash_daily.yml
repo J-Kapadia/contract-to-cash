@@ -1,0 +1,34 @@
+version: 2
+
+models:
+  - name: fct_cash_daily
+    description: >
+      Forecast cash per case, day and line over the 91 days after the as-of date, as positive
+      cents with its direction: cash in from `fc_cash_in`, cash out from `fc_cash_out` and the
+      line `commissions` from `fc_commissions`.
+    columns:
+      - name: as_of
+        data_tests: [not_null]
+      - name: case
+        quote: true
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [base, downside, upside]
+      - name: date
+        data_tests: [not_null]
+      - name: line
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [open_ar, contracted, renewal, expansion, new, payroll, commissions, cloud, vendors, events, rent]
+      - name: direction
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['in', 'out']
+      - name: cents
+        data_tests: [not_null]

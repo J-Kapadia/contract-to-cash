@@ -1,0 +1,40 @@
+version: 2
+
+models:
+  - name: fc_cash_13w
+    description: >
+      The 13 weeks W01..W13 of forecast cash per case and line from the day after the as-of date,
+      as positive cents, with the week's opening and ending balance on every row. W01 opens at the
+      closing cash of the as-of date's month; ending = opening + cash in - cash out.
+    columns:
+      - name: as_of
+        data_tests: [not_null]
+      - name: case
+        quote: true
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [base, downside, upside]
+      - name: week
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [W01, W02, W03, W04, W05, W06, W07, W08, W09, W10, W11, W12, W13]
+      - name: week_start
+        data_tests: [not_null]
+      - name: week_end
+        data_tests: [not_null]
+      - name: line
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [open_ar, contracted, renewal, expansion, new, payroll, commissions, cloud, vendors, events, rent]
+      - name: cents
+        data_tests: [not_null]
+      - name: opening_cents
+        data_tests: [not_null]
+      - name: ending_cents
+        data_tests: [not_null]
