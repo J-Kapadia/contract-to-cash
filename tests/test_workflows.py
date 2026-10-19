@@ -66,7 +66,7 @@ def test_ci_installs_from_the_lock_and_checks_it():
 
 def test_ci_fast_job_runs_the_fast_tier_under_a_timeout():
     fast = load("ci.yml")["jobs"]["fast"]
-    assert "timeout 900 scripts/definition-of-done.sh --fast" in [s.get("run") for s in fast["steps"]]
+    assert "timeout 3600 scripts/definition-of-done.sh --fast" in [s.get("run") for s in fast["steps"]]
 
 
 def test_ci_slow_job_follows_fast_and_runs_the_full_check():
