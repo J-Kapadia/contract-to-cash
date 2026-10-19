@@ -1,0 +1,28 @@
+version: 2
+
+models:
+  - name: fc_cash_in
+    description: >
+      Forecast cash in per case and day over the 91 days after the as-of date, by line: the open
+      invoices (`open_ar`) and the invoices of the contracts in force (`contracted`) and of the
+      forecast renewal, expansion and new contracts, all dated by expected_pay_date().
+    columns:
+      - name: as_of
+        data_tests: [not_null]
+      - name: case
+        quote: true
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [base, downside, upside]
+      - name: date
+        data_tests: [not_null]
+      - name: line
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [open_ar, contracted, renewal, expansion, new]
+      - name: cents
+        data_tests: [not_null]
