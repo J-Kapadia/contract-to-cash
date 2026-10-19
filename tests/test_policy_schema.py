@@ -66,9 +66,11 @@ def test_the_committed_cases_follow_the_driver_table():
     assert {c.cloud_trailing_months for c in (cases.base, cases.downside, cases.upside)} == {3}
 
 
-def test_the_committed_matches_start_empty():
-    assert policy.load_matches(CONFIG) == ()
-    assert yaml.safe_load((CONFIG / "customer_matches.yaml").read_text()) == {"pairs": []}
+def test_the_committed_matches_load_with_a_decision_and_a_reason_each():
+    matches = policy.load_matches(CONFIG)
+    assert matches
+    assert all(m.decision in ("same", "different") and m.reason for m in matches)
+    assert len({frozenset((m.a, m.b)) for m in matches}) == len(matches)
 
 
 def test_sha256_of_hashes_the_file_bytes():
