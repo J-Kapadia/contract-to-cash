@@ -1,0 +1,43 @@
+version: 2
+
+models:
+  - name: fc_contracts_pipeline
+    description: >
+      Forecast contracts for the open new and expansion opportunities of the latest pipeline snapshot
+      on or before the as-of date: per case, one row per opportunity at its annual contract value
+      times the case's stage win rate, starting on its expected close date (a stale opportunity
+      starts a policy shift after the as-of date, at a reduced weight) with its billing frequency.
+    columns:
+      - name: as_of
+        data_tests: [not_null]
+      - name: case
+        quote: true
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [base, downside, upside]
+      - name: source
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [new, expansion]
+      - name: customer_id
+        data_tests: [not_null]
+      - name: opp_id
+        data_tests: [not_null]
+      - name: term_start
+        data_tests: [not_null]
+      - name: term_end
+        data_tests: [not_null]
+      - name: billing_frequency
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [annual, quarterly]
+      - name: annual_fee_cents
+        data_tests: [not_null]
+      - name: stale
+        data_tests: [not_null]

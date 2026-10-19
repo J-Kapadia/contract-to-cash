@@ -1,0 +1,37 @@
+version: 2
+
+models:
+  - name: stg_pipeline_snapshots
+    description: >
+      Monthly CRM pipeline snapshots, typed. One row per opportunity per month-end snapshot it appears
+      in, with the stage it held then.
+    columns:
+      - name: snapshot_date
+        data_tests: [not_null]
+      - name: opp_id
+        data_tests: [not_null]
+      - name: crm_account_id
+        data_tests: [not_null]
+      - name: opp_type
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [new, expansion, renewal]
+      - name: stage
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [S1, S2, S3, S4, S5, won, lost]
+      - name: acv_cents
+        data_tests: [not_null]
+      - name: term_months
+        data_tests: [not_null]
+      - name: billing_frequency
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [annual, quarterly]
+      - name: expected_close_date
+        data_tests: [not_null]
