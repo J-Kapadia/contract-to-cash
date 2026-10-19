@@ -157,8 +157,8 @@ def test_every_injected_error_has_a_target_row():
 
 
 def test_the_expected_outputs_equal_a_recomputation(write_expected):
-    recomputed = write_expected.expected(MINI_BOOKS, MINI_TRUTH)
-    assert set(recomputed) == {"rollforward.csv", "bridge.csv"}
+    recomputed = write_expected.expected(MINI_BOOKS, MINI_TRUTH, FIXTURES / "config")
+    assert set(recomputed) == {p.name for p in EXPECTED.iterdir()}
     for name, text in recomputed.items():
         assert (EXPECTED / name).read_text(encoding="utf-8") == text, name
 
