@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import click
 
-from .. import db, memo, paths
+from .. import db, memo, paths, state
 from ..envelope import Envelope
 from ..errors import PreconditionError
 
@@ -23,6 +23,8 @@ def command(month: str, out: str) -> None:
         raise PreconditionError(f"no warehouse at {resolved.warehouse}: close {month} first.")
     con = db.connect(resolved.warehouse, read_only=True)
     try:
+        if state.status(con, month) not in (state.CLOSED, state.LOCKED):
+            raise PreconditionError(f"month {month} is not closed: run `c2c close --month {month}` first.")
         page = memo.build(con, month, out)
     finally:
         con.close()

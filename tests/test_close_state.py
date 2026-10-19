@@ -223,6 +223,29 @@ def test_an_earlier_month_that_is_closed_is_unchanged_when_asked_for_again(close
     assert scratch.statuses() == {m: "closed" for m in MONTHS}
 
 
+def test_the_memo_of_a_closed_month_is_written(closed_through_december, tmp_path):
+    scratch, _ = closed_through_december
+    site = tmp_path / "site"
+    memo = c2c("memo", "--month", "2024-12", "--out", str(site), "--warehouse", str(scratch.warehouse),
+               "--books", str(scratch.books), "--config", str(scratch.config), "--json",
+               env={"C2C_SIGNOFF_DIR": str(scratch.signoff)})
+    assert memo.code == 0, memo.stderr
+    assert (site / "2024-12" / "index.html").is_file()
+
+
+def test_the_memo_of_an_open_month_exits_4_telling_the_user_to_close_it(tmp_path):
+    scratch = Scratch(tmp_path, MINI_BOOKS)
+    assert scratch.close("2024-10").code == 0
+    site = tmp_path / "site"
+    memo = c2c("memo", "--month", "2024-11", "--out", str(site), "--warehouse", str(scratch.warehouse),
+               "--books", str(scratch.books), "--config", str(scratch.config), "--json",
+               env={"C2C_SIGNOFF_DIR": str(scratch.signoff)})
+    assert memo.code == 4, memo.stderr
+    assert "not closed" in memo.json["message"]
+    assert "close --month 2024-11" in memo.json["message"]
+    assert not site.exists()
+
+
 @pytest.mark.parametrize("month", ["2024-09", "2026-04"])
 def test_a_month_outside_the_window_exits_2_naming_the_range(tmp_path, month):
     scratch = Scratch(tmp_path, MINI_BOOKS)
