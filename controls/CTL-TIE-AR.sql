@@ -8,8 +8,9 @@ with tie as (
         month,
         gl_account,
         diff_cents,
-        diff_cents - coalesce(lag(diff_cents) over (order by month), 0) as change_cents
+        diff_cents - coalesce(lag(diff_cents) over (partition by gl_account order by month), 0) as change_cents
     from mart.fct_gl_tieout
+    where gl_account = '1200'
 ),
 
 violations as (

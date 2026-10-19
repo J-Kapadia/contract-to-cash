@@ -3,10 +3,20 @@ version: 2
 models:
   - name: fct_gl_tieout
     description: >
-      Closing balance of GL account 1200 against the AR roll-forward per month;
-      `diff_cents` is the ledger minus the subledger.
+      The general ledger against the sub-ledgers per month and account: cash (1000) and receivables
+      (1200) and deferred revenue (2400) closing balances, and the month's recognised revenue for
+      subscription and credit lines (4000) and overage (4100). `gl_cents` is the running balance for
+      1000, 1200 and 2400 and the period activity for 4000 and 4100, with credit-balance accounts shown
+      with the sign of their sub-ledger; `diff_cents` is the ledger minus the sub-ledger and
+      `entry_ids` the account's ledger entries of the month.
     columns:
       - name: month
-        data_tests: [not_null, unique]
+        data_tests: [not_null]
+      - name: gl_account
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['1000', '1200', '2400', '4000', '4100']
       - name: diff_cents
         data_tests: [not_null]

@@ -50,7 +50,14 @@ def test_rollforward_rows_add_up(closed):
 
 
 def test_gl_1200_ties_to_the_subledger_every_month(closed):
-    got = query(closed, "SELECT month, gl_account, diff_cents FROM mart.fct_gl_tieout ORDER BY month")
+    got = query(closed, "SELECT month, gl_account, diff_cents FROM mart.fct_gl_tieout"
+                        " WHERE gl_account = '1200' ORDER BY month")
     assert got == [("2026-01", "1200", 0), ("2026-02", "1200", 0), ("2026-03", "1200", 0)]
-    assert query(closed, "SELECT gl_cents FROM mart.fct_gl_tieout WHERE month = ?", [MONTH]) == [
-        (sum(handmade_closing(closed.books).values()),)]
+    assert query(closed, "SELECT gl_cents FROM mart.fct_gl_tieout WHERE gl_account = '1200' AND month = ?",
+                 [MONTH]) == [(sum(handmade_closing(closed.books).values()),)]
+
+
+def test_every_account_ties_every_month(closed):
+    assert query(closed, "SELECT count(*) FROM mart.fct_gl_tieout WHERE diff_cents != 0") == [(0,)]
+    assert query(closed, "SELECT DISTINCT gl_account FROM mart.fct_gl_tieout ORDER BY 1") == [
+        ("1000",), ("1200",), ("2400",), ("4000",), ("4100",)]
