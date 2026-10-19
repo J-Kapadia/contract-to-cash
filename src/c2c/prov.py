@@ -1,13 +1,31 @@
-"""Provenance: one record per published number, with a digest of the source rows it came from.
+"""Provenance: one record per published number, with a digest of the inputs it came from.
 
-A leaf number hashes the `_row_hash` of every source row its `source_query` returns. Records are
-written only here.
+Records are written only here. A number belongs to a family, declared as one SQL file under
+`src/c2c/families/`, so a new family is a new file and no change to this module. The file's name is
+its family and, by convention, the first segment of its number ids.
+
+A family file is a SELECT, run with `$month` bound when it mentions it, returning one row per number:
+
+    number_id     VARCHAR    stable id, e.g. `ar/2026-03/acct_0001/closing`
+    month         VARCHAR    the month it belongs to, NULL for a number that belongs to none
+    value_cents   BIGINT     the value when it is an integer (cents, a count, a rate in bps)
+    value_text    VARCHAR    the value when it is text
+    unit          VARCHAR    `cents`, `count`, `bps`, `text`, ...
+    kind          VARCHAR    `leaf` or `composite`; anything else fails the write
+    source_query  VARCHAR    leaves: a query selecting `_row_hash`, the source rows of the number
+    children      VARCHAR[]  composites: the ids of the numbers it is computed from
+    step          VARCHAR    optional: the model or file it comes from; the family name when absent
+
+A leaf's digest is over the `_row_hash`es its `source_query` selects. A composite's is over the
+`(number_id, input_digest)` pairs of its children in id order, so it changes when any child's does.
+A composite's children may belong to any family, or be records already written.
 """
 
 from __future__ import annotations
 
 import functools
 import hashlib
+import json
 import os
 import subprocess
 import uuid
@@ -72,48 +90,128 @@ def write_leaf(con: duckdb.DuckDBPyConnection, number_id: str, month: str, value
     )
 
 
-def _quoted(value: str) -> str:
-    return "'" + value.replace("'", "''") + "'"
+FAMILIES_DIR = Path(__file__).resolve().parent / "families"
+LEAF, COMPOSITE = "leaf", "composite"
+COLUMNS = ("number_id", "month", "value_cents", "value_text", "unit", "kind", "source_query", "children")
+# The families whose records make up a month's result; each contributes the ids `<family>/<month>/...`.
+RECORD_TYPES = {
+    "number_id": "VARCHAR", "month": "VARCHAR", "value_cents": "BIGINT", "value_text": "VARCHAR", "unit": "VARCHAR",
+    "step": "VARCHAR", "git_sha": "VARCHAR", "producer_kind": "VARCHAR", "input_digest": "VARCHAR",
+    "input_row_count": "BIGINT", "source_query": "VARCHAR", "checks_passed": "VARCHAR[]", "signer": "VARCHAR",
+    "signoff_ref": "VARCHAR", "run_id": "VARCHAR",
+}
+RECORD_STRUCT = "{" + ", ".join(f'"{c}": "{t}"' for c, t in RECORD_TYPES.items()) + "}"
+RESULT_FAMILIES = ("cust", "rev", "defrev", "ar", "cash", "bridge", "tie", "aging", "dtp", "rollup")
 
 
-def ar_source_query(customer_id: str, month: str) -> str:
-    """The invoice and payment rows that make up a customer's receivable through `month`."""
-    customer, through = _quoted(customer_id), _quoted(month)
-    return (
-        "WITH owners AS (SELECT contract_id, min(crm_account_id) AS customer_id FROM raw.contracts GROUP BY contract_id),"
-        " invoice_owners AS (SELECT invoice_id, min(contract_id) AS contract_id FROM raw.invoices GROUP BY invoice_id)"
-        f" SELECT invoices._row_hash FROM raw.invoices AS invoices JOIN owners USING (contract_id)"
-        f" WHERE owners.customer_id = {customer} AND invoices._month <= {through}"
-        f" UNION ALL SELECT payments._row_hash FROM raw.payments AS payments"
-        f" JOIN invoice_owners USING (invoice_id) JOIN owners USING (contract_id)"
-        f" WHERE owners.customer_id = {customer} AND payments._month <= {through}"
-    )
+class FamilyError(ValueError):
+    """A family file returned something that cannot be recorded."""
+
+
+def pair_digest(pairs: Sequence[tuple[str, str]]) -> str:
+    """SHA-256 over `(number_id, input_digest)` pairs in id order, one per line."""
+    return hashlib.sha256("\n".join(f"{n}\x1f{d}" for n, d in sorted(pairs)).encode("utf-8")).hexdigest()
+
+
+def family_rows(con: duckdb.DuckDBPyConnection, path: Path, month: str) -> list[dict]:
+    sql = path.read_text(encoding="utf-8")
+    cursor = con.execute(sql, {"month": month} if "$month" in sql else {})
+    names = [d[0] for d in cursor.description]
+    missing = [c for c in COLUMNS if c not in names]
+    if missing:
+        raise FamilyError(f"family {path.stem!r} does not return {', '.join(missing)}")
+    rows = [dict(zip(names, row)) for row in cursor.fetchall()]
+    for row in rows:
+        kind, number_id = row["kind"], row["number_id"]
+        if kind == LEAF and not row["source_query"]:
+            raise FamilyError(f"family {path.stem!r}: leaf {number_id!r} has no source_query")
+        if kind == COMPOSITE and row["children"] is None:
+            raise FamilyError(f"family {path.stem!r}: composite {number_id!r} has no children")
+        if kind not in (LEAF, COMPOSITE):
+            raise FamilyError(f"family {path.stem!r}: {number_id!r} has unknown kind {kind!r}; use leaf or composite")
+        row["step"] = row.get("step") or path.stem
+    return rows
+
+
+def _digests(con: duckdb.DuckDBPyConnection, rows: dict[str, dict]) -> dict[str, tuple[str, int]]:
+    """The `(input_digest, input_row_count)` of every row; a composite's children are looked up among
+    the rows, then among the records already written."""
+    done: dict[str, tuple[str, int]] = {}
+
+    def of(number_id: str, trail: tuple[str, ...] = ()) -> str:
+        if number_id in done:
+            return done[number_id][0]
+        row = rows.get(number_id)
+        if row is None:
+            found = con.execute("SELECT input_digest FROM prov.records WHERE number_id = ?", [number_id]).fetchone()
+            if found is None:
+                raise FamilyError(f"{trail[-1]!r} is built from {number_id!r}, which has no record")
+            return found[0]
+        if number_id in trail:
+            raise FamilyError(f"{number_id!r} is built from itself through {' -> '.join(trail)}")
+        if row["kind"] == LEAF:
+            done[number_id] = source_digest(con, row["source_query"])
+        else:
+            children = sorted(set(row["children"]))
+            done[number_id] = (pair_digest([(c, of(c, trail + (number_id,))) for c in children]), len(children))
+        return done[number_id][0]
+
+    for number_id in rows:
+        of(number_id)
+    return done
 
 
 def write_month(con: duckdb.DuckDBPyConnection, month: str, checks_passed: Sequence[str] = (),
-                run_id: str | None = None) -> int:
+                run_id: str | None = None, families: Path | None = None) -> int:
     """Write the provenance of every number published for `month`; returns the count.
 
-    Today that is `ar/<month>/<customer_id>/closing` for every customer of the AR roll-forward."""
+    Every family file of `families` (default: the package's own) runs in name order, then the records
+    are written in one transaction, replacing the family's earlier records of the month."""
     run_id = run_id or uuid.uuid4().hex
-    rows = con.execute("SELECT customer_id, closing_cents FROM mart.fct_ar_rollforward"
-                       " WHERE month = ? AND customer_id IS NOT NULL ORDER BY customer_id", [month]).fetchall()
+    init(con)
+    paths = sorted((families or FAMILIES_DIR).glob("*.sql"))
+    rows: dict[str, dict] = {}
+    for path in paths:
+        for row in family_rows(con, path, month):
+            if row["number_id"] in rows:
+                raise FamilyError(f"family {path.stem!r}: {row['number_id']!r} is already produced by another row")
+            rows[row["number_id"]] = row
+    digests = _digests(con, rows)
+    sha, kind = git_sha(), producer_kind()
+    records = [
+        {"number_id": r["number_id"], "month": r["month"], "value_cents": r["value_cents"],
+         "value_text": r["value_text"], "unit": r["unit"], "step": r["step"], "git_sha": sha, "producer_kind": kind,
+         "input_digest": digests[n][0], "input_row_count": digests[n][1], "source_query": r["source_query"],
+         "checks_passed": list(checks_passed), "signer": None, "signoff_ref": None, "run_id": run_id}
+        for n, r in rows.items()
+    ]
     con.execute("BEGIN")
     try:
-        for customer_id, closing in rows:
-            write_leaf(con, f"ar/{month}/{customer_id}/closing", month, closing, "cents", "fct_ar_rollforward",
-                       ar_source_query(customer_id, month), checks_passed, run_id)
+        con.execute("DELETE FROM prov.records WHERE month = ? AND list_contains(?, split_part(number_id, '/', 1))"
+                    " AND NOT list_contains(?, number_id)", [month, [p.stem for p in paths], list(rows)])
+        # One JSON parameter: binding fifteen values per record one by one is slow.
+        con.execute(f"INSERT OR REPLACE INTO prov.records SELECT {', '.join('r.' + c for c in RECORD_TYPES)}"
+                    f" FROM (SELECT unnest(from_json(CAST(? AS JSON), '[{RECORD_STRUCT}]')) AS r)",
+                    [json.dumps(records)])
         con.execute("COMMIT")
     except BaseException:
         con.execute("ROLLBACK")
         raise
-    return len(rows)
+    return len(records)
 
 
 def result_hash(con: duckdb.DuckDBPyConnection, month: str) -> str | None:
-    """SHA-256 over the month's rows of the AR roll-forward, or None when there is no such table."""
+    """SHA-256 over the month's records of the result families, ordered by id; None when it has none.
+
+    Each record contributes its id, value, unit and input digest, so the hash moves when a number or
+    anything it was built from does, and not with the commit, run or producer that wrote it."""
     if con.execute("SELECT count(*) FROM information_schema.tables"
-                   " WHERE table_schema = 'mart' AND table_name = 'fct_ar_rollforward'").fetchone()[0] == 0:
+                   " WHERE table_schema = 'prov' AND table_name = 'records'").fetchone()[0] == 0:
         return None
-    rows = con.execute("SELECT * FROM mart.fct_ar_rollforward WHERE month = ? ORDER BY customer_id", [month]).fetchall()
-    return digest([repr(row) for row in rows])
+    rows = con.execute(
+        "SELECT number_id, coalesce(CAST(value_cents AS VARCHAR), value_text, ''), unit, input_digest FROM prov.records"
+        " WHERE split_part(number_id, '/', 2) = ? AND list_contains(?, split_part(number_id, '/', 1))"
+        " ORDER BY number_id", [month, list(RESULT_FAMILIES)]).fetchall()
+    if not rows:
+        return None
+    return hashlib.sha256("\n".join("\x1f".join(map(str, row)) for row in rows).encode("utf-8")).hexdigest()
