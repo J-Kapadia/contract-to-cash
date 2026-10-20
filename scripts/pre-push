@@ -11,6 +11,8 @@
 # case-insensitive literal term per line, blank lines and '#' lines ignored. The output
 # names commits and file:line only, never the matched text.
 #
+# On acceptance it prints one line to stderr: the number of commits checked and the remote URL.
+#
 # Install with scripts/install-hooks.sh. Git passes the remote name and URL as arguments
 # and one "<local ref> <local sha> <remote ref> <remote sha>" line per ref on stdin.
 set -uo pipefail
@@ -38,6 +40,7 @@ if [ ! -s "$tmp/patterns" ]; then
 fi
 
 status=0
+checked=0
 refuse() { echo "pre-push: $1" >&2; status=1; }
 
 while read -r _ local_sha _ remote_sha; do
@@ -49,6 +52,7 @@ while read -r _ local_sha _ remote_sha; do
   fi
   while IFS= read -r c; do
     short=${c:0:12}
+    checked=$((checked + 1))
     if git show -s --format=%B "$c" | grep -Ev '^Bead-Id:' > "$tmp/msg"; then :; fi
     if grep -qiF -f "$tmp/terms" "$tmp/msg"; then refuse "commit $short: message matches the denylist"; fi
     if grep -qE -f "$tmp/patterns" "$tmp/msg"; then refuse "commit $short: message matches a private term pattern"; fi
@@ -71,4 +75,7 @@ while read -r _ local_sha _ remote_sha; do
   done < <(git rev-list "${range[@]}")
 done
 
+if [ "$status" -eq 0 ]; then
+  echo "pre-push: checked $checked commit(s) to ${2:-unknown}: nothing private, no denylisted term" >&2
+fi
 exit "$status"
