@@ -13,7 +13,7 @@ from conftest import MINI_BOOKS, c2c, shared_dir
 
 MONTH = "2026-03"
 FAMILIES = ["cust", "rev", "defrev", "ar", "cash", "tie", "aging", "dtp", "fc", "rate", "bt", "bridge", "chg",
-            "rollup", "master", "ref", "cfg"]
+            "rollup", "drift", "master", "ref", "cfg"]
 
 
 @pytest.fixture(scope="module")
@@ -68,6 +68,10 @@ VALID = [
     "chg/2026-03/arr_new", "chg/2026-03/arr_expansion", "chg/2026-03/arr_contraction", "chg/2026-03/arr_churn",
     "rollup/2026-03/nrr_bps", "rollup/2026-03/grr_bps", "rollup/2026-03/logo_churn", "rollup/2026-03/stale_opps",
     "master/precision_auto", "master/recall_auto", "master/pairs_doubt", "master/pairs_reviewed",
+    # drift
+    "drift/2026-03/new_account/6100", "drift/2026-03/new_customer/crm_0007", "drift/2026-03/new_line_type/overage",
+    "drift/2026-03/volume_shift/gl", "drift/2026-03/new_accounts", "drift/2026-03/new_customers",
+    "drift/2026-03/new_line_types", "drift/2026-03/volume_shifts",
     # ref, cfg
     "ref/gl_accounts/6500", "ref/business_days/2023-01-01", "ref/freemail_domains/aol.com",
     "ref/customer_matches/acct_0007|bill_0003", "ref/legal_suffixes/gmbh",
@@ -108,6 +112,9 @@ INVALID = [
     "chg/2026-03/arr_total", "chg/2026-03/nrr_bps", "chg/2026-03/acct_0001/arr_new",
     "rollup/2026-03/arr_new", "rollup/2026-03/revenue", "rollup/nrr_bps",
     "master/2026-03/precision_auto", "master/precision", "master", "master/precision_auto/extra",
+    # drift
+    "drift/2026-03/other/x", "drift/2026-03/new_account", "drift/2026-03/new_accounts/6100",
+    "drift/2026-03/new_account/a/b", "drift/new_account/6100", "drift/2026-03",
     # ref and cfg
     "ref/gl_accounts", "ref/gl_accounts/", "ref/sources/gl", "ref/gl_accounts/65 00", "ref/gl_accounts/a/b",
     "cfg", "cfg/", "cfg/min cash", "cfg/min_cash_cents/extra", "cfg/.x", "cfg/x.", "cfg/x..y", "cfg/2026-03/min_cash_cents",

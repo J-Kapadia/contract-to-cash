@@ -42,6 +42,8 @@ BRIDGE_LINES = ("revenue", "defrev_movement", "net_billings", "ar_movement", "re
 CHG_METRICS = ("arr_new", "arr_expansion", "arr_contraction", "arr_churn")
 ROLLUP_METRICS = ("nrr_bps", "grr_bps", "logo_churn", "stale_opps")
 MASTER_METRICS = ("precision_auto", "recall_auto", "pairs_doubt", "pairs_reviewed")
+DRIFT_CATEGORIES = ("new_account", "new_customer", "new_line_type", "volume_shift")
+DRIFT_COUNTS = ("new_accounts", "new_customers", "new_line_types", "volume_shifts")
 REF_FILES = ("business_days", "customer_matches", "freemail_domains", "gl_accounts", "legal_suffixes")
 
 
@@ -111,6 +113,13 @@ def _aging(rest: tuple[str, ...]) -> bool:
     return len(rest) == 2 and _customer(rest[0]) and BUCKET.fullmatch(rest[1]) is not None
 
 
+def _drift(rest: tuple[str, ...]) -> bool:
+    """What follows `drift/<month>`: a category and one key, or the count of a category's items."""
+    if len(rest) == 1:
+        return rest[0] in DRIFT_COUNTS
+    return len(rest) == 2 and rest[0] in DRIFT_CATEGORIES and KEY.fullmatch(rest[1]) is not None
+
+
 def _shape(*checks: Callable[[str], bool]) -> Callable[[tuple[str, ...]], bool]:
     """A rule that the remaining segments are exactly as many as `checks`, each passing its own."""
     return lambda rest: len(rest) == len(checks) and all(check(part) for check, part in zip(checks, rest))
@@ -131,6 +140,7 @@ _FAMILIES: dict[str, tuple[Callable[[str], bool] | None, Callable[[tuple[str, ..
     "bridge": (_month, _shape(_one_of(*BRIDGE_LINES))),
     "chg": (_month, _shape(_one_of(*CHG_METRICS))),
     "rollup": (_month, _shape(_one_of(*ROLLUP_METRICS))),
+    "drift": (_month, _drift),
     "master": (None, _shape(_one_of(*MASTER_METRICS))),
     "ref": (None, _shape(_one_of(*REF_FILES), _matching(KEY))),
     "cfg": (None, _shape(_matching(CONFIG_KEY))),

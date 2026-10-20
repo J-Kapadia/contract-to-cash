@@ -1,0 +1,29 @@
+version: 2
+
+models:
+  - name: fct_drift
+    description: >
+      What changed in the books, one row per month, category and key over every month of the raw books.
+      new_account is a ledger account seen for the first time (key the account, value_cents its ledger
+      lines in that month), new_customer a CRM account seen for the first time (value_cents 1),
+      new_line_type a contract line type seen for the first time (value_cents its lines in that month),
+      and volume_shift a source file whose row count moved against the previous calendar month by at
+      least the policy threshold in basis points (key the file stem, value_cents its rows in the month,
+      prior_cents its rows in the month before, shift_bps the move truncated toward zero). The first
+      month has no volume rows.
+    columns:
+      - name: month
+        description: The month the change was first seen, YYYY-MM.
+        data_tests: [not_null]
+      - name: category
+        description: new_account, new_customer, new_line_type or volume_shift.
+        data_tests: [not_null]
+      - name: key
+        description: The ledger account, CRM account id, line type or file stem the row is about.
+        data_tests: [not_null]
+      - name: value_cents
+        description: Ledger or line count of a first sighting, or the rows of a file in the month; a count, not money.
+      - name: prior_cents
+        description: Rows of the file in the previous calendar month; empty for a first sighting.
+      - name: shift_bps
+        description: The row-count move against the previous calendar month in basis points; empty for a first sighting.
