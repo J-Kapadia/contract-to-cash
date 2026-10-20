@@ -1,0 +1,20 @@
+version: 2
+
+models:
+  - name: fct_revenue_recurring
+    description: >
+      Recognised revenue per month, split into recurring (a subscription line that refers to a
+      contract line in the books) and non_recurring (overage, credit, and subscription lines with
+      no contract line). Recognised as fct_revenue does; both classifications are present for every
+      month, 0 where nothing is recognised.
+    columns:
+      - name: month
+        data_tests: [not_null]
+      - name: classification
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [recurring, non_recurring]
+      - name: recognised_cents
+        data_tests: [not_null]

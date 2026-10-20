@@ -13,7 +13,7 @@ from conftest import MINI_BOOKS, c2c, shared_dir
 
 MONTH = "2026-03"
 FAMILIES = ["cust", "rev", "defrev", "ar", "cash", "tie", "aging", "dtp", "fc", "rate", "bt", "bridge", "chg",
-            "rollup", "drift", "schema", "master", "ref", "cfg"]
+            "rollup", "drift", "dso", "recurring", "schema", "master", "ref", "cfg"]
 
 
 @pytest.fixture(scope="module")
@@ -72,6 +72,10 @@ VALID = [
     "drift/2026-03/new_account/6100", "drift/2026-03/new_customer/crm_0007", "drift/2026-03/new_line_type/overage",
     "drift/2026-03/volume_shift/gl", "drift/2026-03/new_accounts", "drift/2026-03/new_customers",
     "drift/2026-03/new_line_types", "drift/2026-03/volume_shifts",
+    # dso
+    "dso/2026-03/ar_closing", "dso/2026-03/billed", "dso/2026-03/days_in_month", "dso/2024-11/days",
+    # recurring
+    "recurring/2026-03/recurring", "recurring/2026-03/non_recurring", "recurring/2024-11/total",
     # schema
     "schema/2026-03/invoices", "schema/2024-11/gl", "schema/2026-03/crm_accounts",
     # ref, cfg
@@ -117,6 +121,11 @@ INVALID = [
     # drift
     "drift/2026-03/other/x", "drift/2026-03/new_account", "drift/2026-03/new_accounts/6100",
     "drift/2026-03/new_account/a/b", "drift/new_account/6100", "drift/2026-03",
+    # dso
+    "dso/2026-03/other", "dso/2026-03", "dso/2026-03/days/extra", "dso/2026-03-31/days",
+    # recurring
+    "recurring/2026-03/other", "recurring/2026-03", "recurring/recurring", "recurring/2026-03/total/extra",
+    "recurring/2026-03-31/total",
     # schema
     "schema/2026-03", "schema/2026-03/invoices.csv", "schema/2026-03/ref_gl_accounts", "schema/invoices",
     "schema/2026-03-31/invoices", "schema/2026-03/invoices/extra",

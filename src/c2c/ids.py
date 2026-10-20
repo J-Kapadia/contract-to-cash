@@ -44,6 +44,8 @@ ROLLUP_METRICS = ("nrr_bps", "grr_bps", "logo_churn", "stale_opps")
 MASTER_METRICS = ("precision_auto", "recall_auto", "pairs_doubt", "pairs_reviewed")
 DRIFT_CATEGORIES = ("new_account", "new_customer", "new_line_type", "volume_shift")
 DRIFT_COUNTS = ("new_accounts", "new_customers", "new_line_types", "volume_shifts")
+DSO_METRICS = ("ar_closing", "billed", "days_in_month", "days")
+RECURRING_LINES = ("recurring", "non_recurring", "total")
 REF_FILES = ("business_days", "customer_matches", "freemail_domains", "gl_accounts", "legal_suffixes")
 
 
@@ -147,6 +149,8 @@ _FAMILIES: dict[str, tuple[Callable[[str], bool] | None, Callable[[tuple[str, ..
     "chg": (_month, _shape(_one_of(*CHG_METRICS))),
     "rollup": (_month, _shape(_one_of(*ROLLUP_METRICS))),
     "drift": (_month, _drift),
+    "dso": (_month, _shape(_one_of(*DSO_METRICS))),
+    "recurring": (_month, _shape(_one_of(*RECURRING_LINES))),
     "schema": (_month, _shape(_books_file)),
     "master": (None, _shape(_one_of(*MASTER_METRICS))),
     "ref": (None, _shape(_one_of(*REF_FILES), _matching(KEY))),
