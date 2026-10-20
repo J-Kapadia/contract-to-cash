@@ -13,7 +13,7 @@ from conftest import MINI_BOOKS, c2c, shared_dir
 
 MONTH = "2026-03"
 FAMILIES = ["cust", "rev", "defrev", "ar", "cash", "tie", "aging", "dtp", "fc", "rate", "bt", "bridge", "chg",
-            "rollup", "drift", "dso", "recurring", "cutoff", "schema", "master", "ref", "cfg"]
+            "rollup", "drift", "dso", "recurring", "cutoff", "concentration", "schema", "master", "ref", "cfg"]
 
 
 @pytest.fixture(scope="module")
@@ -78,6 +78,9 @@ VALID = [
     "recurring/2026-03/recurring", "recurring/2026-03/non_recurring", "recurring/2024-11/total",
     # cutoff
     "cutoff/2026-03/findings", "cutoff/2025-12/inv_000070/2026-01",
+    # concentration
+    "concentration/2026-03/top1", "concentration/2026-03/top10", "concentration/2026-03/customer/acct_0001",
+    "concentration/2024-11/share/acct_0012",
     # schema
     "schema/2026-03/invoices", "schema/2024-11/gl", "schema/2026-03/crm_accounts",
     # ref, cfg
@@ -131,6 +134,10 @@ INVALID = [
     # cutoff
     "cutoff/2026-03", "cutoff/2026-03/inv_000070", "cutoff/2026-03/findings/extra", "cutoff/2025-12/inv_000070/2026-13",
     "cutoff/2025-12/inv_000070/2026-01-31", "cutoff/2025-12//2026-01", "cutoff/findings", "cutoff/2026-03-31/findings",
+    # concentration
+    "concentration/2026-03", "concentration/2026-03/top3", "concentration/2026-03/customer",
+    "concentration/2026-03/customer/inv_1", "concentration/2026-03/share/acct_0001/extra",
+    "concentration/2026-03/top1/acct_0001", "concentration/2026-03-31/top1", "concentration/top1",
     # schema
     "schema/2026-03", "schema/2026-03/invoices.csv", "schema/2026-03/ref_gl_accounts", "schema/invoices",
     "schema/2026-03-31/invoices", "schema/2026-03/invoices/extra",

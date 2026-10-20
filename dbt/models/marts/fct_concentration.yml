@@ -1,0 +1,14 @@
+version: 2
+
+models:
+  - name: fct_concentration
+    description: >
+      Customer concentration per month: one row per customer with recognised revenue, its rank (1 is the
+      largest, ties by customer id), its share of the month's total in basis points (floored) and the
+      shares of the largest one, five and ten customers, repeated on every row of the month. A month
+      whose total is zero has no rows.
+    columns:
+      - name: month
+        data_tests: [not_null]
+      - name: customer_id
+        data_tests: [not_null]

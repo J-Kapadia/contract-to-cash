@@ -46,6 +46,8 @@ DRIFT_CATEGORIES = ("new_account", "new_customer", "new_line_type", "volume_shif
 DRIFT_COUNTS = ("new_accounts", "new_customers", "new_line_types", "volume_shifts")
 DSO_METRICS = ("ar_closing", "billed", "days_in_month", "days")
 RECURRING_LINES = ("recurring", "non_recurring", "total")
+CONCENTRATION_TOPS = ("top1", "top5", "top10")
+CONCENTRATION_CUSTOMER = ("customer", "share")
 REF_FILES = ("business_days", "customer_matches", "freemail_domains", "gl_accounts", "legal_suffixes")
 
 
@@ -129,6 +131,13 @@ def _cutoff(rest: tuple[str, ...]) -> bool:
     return len(rest) == 2 and KEY.fullmatch(rest[0]) is not None and _month(rest[1])
 
 
+def _concentration(rest: tuple[str, ...]) -> bool:
+    """What follows `concentration/<month>`: a top-N share, or a customer's revenue or share."""
+    if len(rest) == 1:
+        return rest[0] in CONCENTRATION_TOPS
+    return len(rest) == 2 and rest[0] in CONCENTRATION_CUSTOMER and _customer(rest[1])
+
+
 def _books_file(value: str) -> bool:
     from .gen import BOOKS  # the generator is heavy: only a `schema` id needs the stems
 
@@ -159,6 +168,7 @@ _FAMILIES: dict[str, tuple[Callable[[str], bool] | None, Callable[[tuple[str, ..
     "dso": (_month, _shape(_one_of(*DSO_METRICS))),
     "recurring": (_month, _shape(_one_of(*RECURRING_LINES))),
     "cutoff": (_month, _cutoff),
+    "concentration": (_month, _concentration),
     "schema": (_month, _shape(_books_file)),
     "master": (None, _shape(_one_of(*MASTER_METRICS))),
     "ref": (None, _shape(_one_of(*REF_FILES), _matching(KEY))),
