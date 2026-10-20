@@ -1,0 +1,8 @@
+counterparty_text,kind,note
+PAYROLL,payroll,Payroll runs paid from the operating account
+SALES COMMISSIONS,commissions,Commission payouts
+CIRRUS COMPUTE (SYNTHETIC),vendor,Cloud hosting vendor
+PINEWOOD OFFICES (SYNTHETIC),vendor,Office rent
+FIELDNOTE SOFTWARE (SYNTHETIC),vendor,Software subscriptions
+HARBOR LEGAL (SYNTHETIC),vendor,Legal services
+SUMMIT EVENTS (SYNTHETIC),vendor,Events and sponsorships

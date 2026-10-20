@@ -51,7 +51,7 @@ ALSO_FAILS = {
     "duplicate_customer": {"CTL-MASTER-ANCHOR"},
     "wrong_period": {"CTL-TIE-AR", "CTL-TIE-DEFREV", "CTL-TIE-REV"},
     "defrev_gl_slip": {"CTL-TIE-REV"},
-    "orphan_bank_txn": {"CTL-TIE-AR"},
+    "orphan_bank_txn": {"CTL-TIE-AR", "CTL-DRIFT-COUNTERPARTY"},
 }
 assert set(NAMED) == set(INJECT_ERRORS) == set(PLANTED_ORDER)
 

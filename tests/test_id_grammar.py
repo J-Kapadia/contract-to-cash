@@ -91,6 +91,7 @@ VALID = [
     # ref, cfg
     "ref/gl_accounts/6500", "ref/business_days/2023-01-01", "ref/freemail_domains/aol.com",
     "ref/customer_matches/acct_0007|bill_0003", "ref/legal_suffixes/gmbh",
+    "ref/counterparties/PAYROLL", "ref/counterparties/CIRRUS COMPUTE (SYNTHETIC)",
     "cfg/min_cash_cents", "cfg/aging_buckets_days.0", "cfg/cases.base.cloud_up_bps", "cfg/stage_defaults_bps.S1",
 ]
 
@@ -153,6 +154,8 @@ INVALID = [
     "schema/2026-03-31/invoices", "schema/2026-03/invoices/extra",
     # ref and cfg
     "ref/gl_accounts", "ref/gl_accounts/", "ref/sources/gl", "ref/gl_accounts/65 00", "ref/gl_accounts/a/b",
+    "ref/counterparties", "ref/counterparties/", "ref/counterparties/ PAYROLL", "ref/counterparties/PAYROLL ",
+    "ref/counterparties/PAY/ROLL", "ref/gl_accounts/CIRRUS COMPUTE",
     "cfg", "cfg/", "cfg/min cash", "cfg/min_cash_cents/extra", "cfg/.x", "cfg/x.", "cfg/x..y", "cfg/2026-03/min_cash_cents",
 ]
 
