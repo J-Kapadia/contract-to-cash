@@ -1,0 +1,28 @@
+version: 2
+
+models:
+  - name: fct_cutoff_findings
+    description: >
+      The invoices with ledger entries in a period other than the month of their invoice date, one row
+      per invoice and period (the predicate of CTL-CUTOFF). The control stops the close of a month that
+      has one, so a closed month holds no row: the table records what a stopped close found.
+    columns:
+      - name: month
+        description: The invoice month, the month the finding belongs to, YYYY-MM.
+        data_tests: [not_null]
+      - name: invoice_id
+        description: The invoice whose ledger entries sit in another period.
+        data_tests: [not_null]
+      - name: invoice_month
+        description: The month of the invoice date, YYYY-MM.
+      - name: gl_period
+        description: The period the misplaced entries sit in, YYYY-MM.
+        data_tests: [not_null]
+      - name: customer_id
+        description: The CRM account of the invoice's contract.
+      - name: entries
+        description: The number of misplaced ledger lines.
+      - name: amount_cents
+        description: The sum of the misplaced lines' positive amounts, the debit side.
+      - name: entry_ids
+        description: The ledger entries of the misplaced lines.

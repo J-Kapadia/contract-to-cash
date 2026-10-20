@@ -13,7 +13,7 @@ from conftest import MINI_BOOKS, c2c, shared_dir
 
 MONTH = "2026-03"
 FAMILIES = ["cust", "rev", "defrev", "ar", "cash", "tie", "aging", "dtp", "fc", "rate", "bt", "bridge", "chg",
-            "rollup", "drift", "dso", "recurring", "schema", "master", "ref", "cfg"]
+            "rollup", "drift", "dso", "recurring", "cutoff", "schema", "master", "ref", "cfg"]
 
 
 @pytest.fixture(scope="module")
@@ -76,6 +76,8 @@ VALID = [
     "dso/2026-03/ar_closing", "dso/2026-03/billed", "dso/2026-03/days_in_month", "dso/2024-11/days",
     # recurring
     "recurring/2026-03/recurring", "recurring/2026-03/non_recurring", "recurring/2024-11/total",
+    # cutoff
+    "cutoff/2026-03/findings", "cutoff/2025-12/inv_000070/2026-01",
     # schema
     "schema/2026-03/invoices", "schema/2024-11/gl", "schema/2026-03/crm_accounts",
     # ref, cfg
@@ -126,6 +128,9 @@ INVALID = [
     # recurring
     "recurring/2026-03/other", "recurring/2026-03", "recurring/recurring", "recurring/2026-03/total/extra",
     "recurring/2026-03-31/total",
+    # cutoff
+    "cutoff/2026-03", "cutoff/2026-03/inv_000070", "cutoff/2026-03/findings/extra", "cutoff/2025-12/inv_000070/2026-13",
+    "cutoff/2025-12/inv_000070/2026-01-31", "cutoff/2025-12//2026-01", "cutoff/findings", "cutoff/2026-03-31/findings",
     # schema
     "schema/2026-03", "schema/2026-03/invoices.csv", "schema/2026-03/ref_gl_accounts", "schema/invoices",
     "schema/2026-03-31/invoices", "schema/2026-03/invoices/extra",

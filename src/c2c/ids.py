@@ -122,6 +122,13 @@ def _drift(rest: tuple[str, ...]) -> bool:
     return len(rest) == 2 and rest[0] in DRIFT_CATEGORIES and KEY.fullmatch(rest[1]) is not None
 
 
+def _cutoff(rest: tuple[str, ...]) -> bool:
+    """What follows `cutoff/<month>`: the count of findings, or one finding's invoice and ledger period."""
+    if len(rest) == 1:
+        return rest[0] == "findings"
+    return len(rest) == 2 and KEY.fullmatch(rest[0]) is not None and _month(rest[1])
+
+
 def _books_file(value: str) -> bool:
     from .gen import BOOKS  # the generator is heavy: only a `schema` id needs the stems
 
@@ -151,6 +158,7 @@ _FAMILIES: dict[str, tuple[Callable[[str], bool] | None, Callable[[tuple[str, ..
     "drift": (_month, _drift),
     "dso": (_month, _shape(_one_of(*DSO_METRICS))),
     "recurring": (_month, _shape(_one_of(*RECURRING_LINES))),
+    "cutoff": (_month, _cutoff),
     "schema": (_month, _shape(_books_file)),
     "master": (None, _shape(_one_of(*MASTER_METRICS))),
     "ref": (None, _shape(_one_of(*REF_FILES), _matching(KEY))),
