@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from c2c import controls, db, dbt_runner, load
+from c2c import controls, db, dbt_runner, load, prov, state
 from conftest import DEFAULT_CONFIG, MINI_BOOKS, MINI_WINDOW, ROOT, shared_dir
 
 REFERENCE = ROOT / "data" / "reference"
@@ -29,6 +29,9 @@ def build_empty(directory: Path) -> None:
     con = db.connect(warehouse)
     try:
         db.init_schemas(con)
+        # a control may read the month state and the recorded numbers, both empty here
+        state.init(con)
+        prov.init(con)
         load.load_months(con, books, *MINI_WINDOW, "test")
         load.load_reference(con, REFERENCE)
         load.load_config(con, DEFAULT_CONFIG)

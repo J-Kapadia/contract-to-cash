@@ -73,8 +73,7 @@ def test_a_failed_close_does_not_write_provenance_for_the_month(closed, tmp_path
     done = c2c("close", "--month", MONTH, "--books", str(books), "--warehouse", str(warehouse), "--json")
     assert done.code == 3, done.stderr
     with db.connect(warehouse, read_only=True) as con:
-        assert con.execute("SELECT count(*) FROM information_schema.tables"
-                           " WHERE table_schema = 'prov' AND table_name = 'records'").fetchone() == (0,)
+        assert con.execute("SELECT count(*) FROM prov.records WHERE month = ?", [MONTH]).fetchone() == (0,)
 
 
 def control_dir(tmp_path, body: str):

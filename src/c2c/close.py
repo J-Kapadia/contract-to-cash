@@ -74,7 +74,10 @@ def close_month(resolved: paths.Paths, month: str, reference: str | Path = DEFAU
     rebuilt, and so is every month after it. The first month to fail its controls stops the run
     (exit 3) and stays open, with every later month it was to build; earlier months stay closed.
     A locked month whose books rows changed fails with CTL-LOCK. Refuses with exit 4 unless the
-    configuration in force is signed."""
+    configuration in force is signed.
+
+    The state and provenance tables exist before the controls run so a control may read what
+    earlier closes recorded."""
     load.check_month(month)
     first, _ = load.check_in_window(resolved.books, month)
     signoff.check(resolved.config, resolved.signoff)  # before the warehouse is opened
@@ -84,6 +87,7 @@ def close_month(resolved: paths.Paths, month: str, reference: str | Path = DEFAU
     con = db.connect(resolved.warehouse)
     try:
         db.init_schemas(con)
+        prov.init(con)
         state.check_books(con, resolved.books)
         counts = load.load_months(con, resolved.books, first, month, run_id)
         counts.update(load.load_reference(con, reference))
