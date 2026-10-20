@@ -1,0 +1,10 @@
+version: 2
+
+models:
+  - name: fct_dso
+    description: >
+      Days sales outstanding per month: closing receivables over all customers times the days in the
+      month over the month's billings, in whole days (floored). Empty when the month billed nothing.
+    columns:
+      - name: month
+        data_tests: [not_null]
