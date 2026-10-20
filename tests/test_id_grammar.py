@@ -13,7 +13,7 @@ from conftest import MINI_BOOKS, c2c, shared_dir
 
 MONTH = "2026-03"
 FAMILIES = ["cust", "rev", "defrev", "ar", "cash", "tie", "aging", "dtp", "fc", "rate", "bt", "bridge", "chg",
-            "rollup", "drift", "master", "ref", "cfg"]
+            "rollup", "drift", "schema", "master", "ref", "cfg"]
 
 
 @pytest.fixture(scope="module")
@@ -72,6 +72,8 @@ VALID = [
     "drift/2026-03/new_account/6100", "drift/2026-03/new_customer/crm_0007", "drift/2026-03/new_line_type/overage",
     "drift/2026-03/volume_shift/gl", "drift/2026-03/new_accounts", "drift/2026-03/new_customers",
     "drift/2026-03/new_line_types", "drift/2026-03/volume_shifts",
+    # schema
+    "schema/2026-03/invoices", "schema/2024-11/gl", "schema/2026-03/crm_accounts",
     # ref, cfg
     "ref/gl_accounts/6500", "ref/business_days/2023-01-01", "ref/freemail_domains/aol.com",
     "ref/customer_matches/acct_0007|bill_0003", "ref/legal_suffixes/gmbh",
@@ -115,6 +117,9 @@ INVALID = [
     # drift
     "drift/2026-03/other/x", "drift/2026-03/new_account", "drift/2026-03/new_accounts/6100",
     "drift/2026-03/new_account/a/b", "drift/new_account/6100", "drift/2026-03",
+    # schema
+    "schema/2026-03", "schema/2026-03/invoices.csv", "schema/2026-03/ref_gl_accounts", "schema/invoices",
+    "schema/2026-03-31/invoices", "schema/2026-03/invoices/extra",
     # ref and cfg
     "ref/gl_accounts", "ref/gl_accounts/", "ref/sources/gl", "ref/gl_accounts/65 00", "ref/gl_accounts/a/b",
     "cfg", "cfg/", "cfg/min cash", "cfg/min_cash_cents/extra", "cfg/.x", "cfg/x.", "cfg/x..y", "cfg/2026-03/min_cash_cents",

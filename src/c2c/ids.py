@@ -120,6 +120,12 @@ def _drift(rest: tuple[str, ...]) -> bool:
     return len(rest) == 2 and rest[0] in DRIFT_CATEGORIES and KEY.fullmatch(rest[1]) is not None
 
 
+def _books_file(value: str) -> bool:
+    from .gen import BOOKS  # the generator is heavy: only a `schema` id needs the stems
+
+    return value in BOOKS
+
+
 def _shape(*checks: Callable[[str], bool]) -> Callable[[tuple[str, ...]], bool]:
     """A rule that the remaining segments are exactly as many as `checks`, each passing its own."""
     return lambda rest: len(rest) == len(checks) and all(check(part) for check, part in zip(checks, rest))
@@ -141,6 +147,7 @@ _FAMILIES: dict[str, tuple[Callable[[str], bool] | None, Callable[[tuple[str, ..
     "chg": (_month, _shape(_one_of(*CHG_METRICS))),
     "rollup": (_month, _shape(_one_of(*ROLLUP_METRICS))),
     "drift": (_month, _drift),
+    "schema": (_month, _shape(_books_file)),
     "master": (None, _shape(_one_of(*MASTER_METRICS))),
     "ref": (None, _shape(_one_of(*REF_FILES), _matching(KEY))),
     "cfg": (None, _shape(_matching(CONFIG_KEY))),

@@ -192,6 +192,7 @@ The controls are the SQL files in `controls/`. A close runs the `raw` ones on th
 - `CTL-BILL-CONTRACT`: the billing schedule of the contracts equals the invoices issued, by contract line and service period, to the cent. Catches `unbilled_amendment`.
 - `CTL-CASH-APP`: a payment, the invoice it is applied to and the bank counterparty of its receipt all resolve to the same customer. Catches `misapplied_payment`.
 - `CTL-CUTOFF`: every ledger entry of an invoice sits in the month of the invoice's date. Catches `wrong_period`.
+- `CTL-DRIFT-SCHEMA`: each books file has the columns it had when the latest earlier month was closed; a column added, dropped or renamed fails the close until the file is restored or that month is closed again on the new layout.
 - `CTL-DUP-INVOICE`: no two invoice rows share an invoice id and line number.
 - `CTL-DUP-PAYMENT`: no two payment rows share a payment id and invoice id.
 - `CTL-LOCK`: a locked month's loaded rows still hash to the digest recorded when it was locked.

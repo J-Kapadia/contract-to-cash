@@ -8,7 +8,7 @@ import uuid
 
 import click
 
-from .. import controls, db, dbt_runner, load, master, paths, signoff
+from .. import controls, db, dbt_runner, load, master, paths, prov, signoff
 from ..close import DEFAULT_REFERENCE
 from ..envelope import Envelope
 from ..errors import CheckMismatch, PreconditionError
@@ -45,6 +45,7 @@ def command(month: str, check: bool, reference: str) -> None:
     con = db.connect(resolved.warehouse)
     try:
         db.init_schemas(con)
+        prov.init(con)
         load.load_months(con, resolved.books, first, month, run_id)
         load.load_reference(con, reference)
         load.load_config(con, resolved.config)
