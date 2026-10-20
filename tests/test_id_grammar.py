@@ -13,7 +13,8 @@ from conftest import MINI_BOOKS, c2c, shared_dir
 
 MONTH = "2026-03"
 FAMILIES = ["cust", "rev", "defrev", "ar", "cash", "tie", "aging", "dtp", "fc", "rate", "bt", "bridge", "chg",
-            "rollup", "drift", "dso", "recurring", "cutoff", "concentration", "schema", "master", "ref", "cfg"]
+            "rollup", "drift", "dso", "recurring", "cutoff", "concentration", "onetime", "schema", "master",
+            "ref", "cfg"]
 
 
 @pytest.fixture(scope="module")
@@ -81,6 +82,10 @@ VALID = [
     # concentration
     "concentration/2026-03/top1", "concentration/2026-03/top10", "concentration/2026-03/customer/acct_0001",
     "concentration/2024-11/share/acct_0012",
+    # onetime
+    "onetime/2026-03/credit_memos", "onetime/2026-03/write_offs", "onetime/2026-03/manual_adjustments",
+    "onetime/2026-03/credit_memo/inv_000100/1", "onetime/2026-03/write_off/je_900002/2",
+    "onetime/2026-03/manual_adjustment/je_900003",
     # schema
     "schema/2026-03/invoices", "schema/2024-11/gl", "schema/2026-03/crm_accounts",
     # ref, cfg
@@ -138,6 +143,11 @@ INVALID = [
     "concentration/2026-03", "concentration/2026-03/top3", "concentration/2026-03/customer",
     "concentration/2026-03/customer/inv_1", "concentration/2026-03/share/acct_0001/extra",
     "concentration/2026-03/top1/acct_0001", "concentration/2026-03-31/top1", "concentration/top1",
+    # onetime
+    "onetime/2026-03", "onetime/2026-03/credit_memo", "onetime/2026-03/credit_memos/extra",
+    "onetime/2026-03/credit_memo/inv_000100", "onetime/2026-03/credit_memo/inv_000100/x",
+    "onetime/2026-03/write_off/je_900002/2/extra", "onetime/2026-03/manual_adjustment/je_900003/1",
+    "onetime/2026-03/manual_adjustment", "onetime/2026-03/refund/je_900003", "onetime/2026-03-31/credit_memos",
     # schema
     "schema/2026-03", "schema/2026-03/invoices.csv", "schema/2026-03/ref_gl_accounts", "schema/invoices",
     "schema/2026-03-31/invoices", "schema/2026-03/invoices/extra",

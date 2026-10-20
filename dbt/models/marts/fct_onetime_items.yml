@@ -1,0 +1,24 @@
+version: 2
+
+models:
+  - name: fct_onetime_items
+    description: >
+      The one-time items of each month, one row per item: credit memos (invoice lines of type credit),
+      write-offs (receivables ledger lines that are neither an invoice's nor a cash receipt's) and manual
+      adjustments (ledger entries that refer to no invoice, payment, bank transaction or recognition).
+    columns:
+      - name: month
+        description: The month of the item, YYYY-MM.
+        data_tests: [not_null]
+      - name: category
+        description: The kind of item.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [credit_memo, write_off, manual_adjustment]
+      - name: ref_id
+        description: The item's invoice line (invoice_id/line_no), ledger line (entry_id/line_no) or ledger entry (entry_id).
+        data_tests: [not_null]
+      - name: amount_cents
+        description: The amount as the line carries it; for a manual adjustment the debit side of the entry.

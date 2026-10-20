@@ -20,6 +20,7 @@ CUSTOMER = re.compile(r"acct_\d{4,}")
 BUCKET = re.compile(r"current|\d+-\d+|\d+\+")
 WEEK = re.compile(r"W(0[1-9]|1[0-3])")
 KEY = re.compile(r"[^\s/\x00-\x1f\x7f]+")
+LINE_NO = re.compile(r"\d+")
 CONFIG_KEY = re.compile(r"[A-Za-z0-9_]+(\.[A-Za-z0-9_]+)*")
 
 CASES = ("base", "downside", "upside")
@@ -48,6 +49,7 @@ DSO_METRICS = ("ar_closing", "billed", "days_in_month", "days")
 RECURRING_LINES = ("recurring", "non_recurring", "total")
 CONCENTRATION_TOPS = ("top1", "top5", "top10")
 CONCENTRATION_CUSTOMER = ("customer", "share")
+ONETIME_TOTALS = ("credit_memos", "write_offs", "manual_adjustments")
 REF_FILES = ("business_days", "customer_matches", "freemail_domains", "gl_accounts", "legal_suffixes")
 
 
@@ -138,6 +140,16 @@ def _concentration(rest: tuple[str, ...]) -> bool:
     return len(rest) == 2 and rest[0] in CONCENTRATION_CUSTOMER and _customer(rest[1])
 
 
+def _onetime(rest: tuple[str, ...]) -> bool:
+    """What follows `onetime/<month>`: a category's total, or one item (an invoice or ledger line, or an entry)."""
+    if len(rest) == 1:
+        return rest[0] in ONETIME_TOTALS
+    if rest[:1] == ("manual_adjustment",):
+        return len(rest) == 2 and KEY.fullmatch(rest[1]) is not None
+    return (len(rest) == 3 and rest[0] in ("credit_memo", "write_off") and KEY.fullmatch(rest[1]) is not None
+            and LINE_NO.fullmatch(rest[2]) is not None)
+
+
 def _books_file(value: str) -> bool:
     from .gen import BOOKS  # the generator is heavy: only a `schema` id needs the stems
 
@@ -169,6 +181,7 @@ _FAMILIES: dict[str, tuple[Callable[[str], bool] | None, Callable[[tuple[str, ..
     "recurring": (_month, _shape(_one_of(*RECURRING_LINES))),
     "cutoff": (_month, _cutoff),
     "concentration": (_month, _concentration),
+    "onetime": (_month, _onetime),
     "schema": (_month, _shape(_books_file)),
     "master": (None, _shape(_one_of(*MASTER_METRICS))),
     "ref": (None, _shape(_one_of(*REF_FILES), _matching(KEY))),
