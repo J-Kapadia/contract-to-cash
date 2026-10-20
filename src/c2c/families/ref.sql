@@ -12,7 +12,6 @@ select
     'ref_' || file as step
 from (
     select 'business_days' as file, 'date' as column_name, date as key, is_business_day as value from raw.ref_business_days
-    union all select 'counterparties', 'counterparty_text', counterparty_text, kind from raw.ref_counterparties
     union all select 'customer_matches', 'concat_ws(''|'', a, b)', concat_ws('|', a, b), decision from raw.ref_customer_matches
     union all select 'freemail_domains', 'domain', domain, domain from raw.ref_freemail_domains
     union all select 'gl_accounts', 'gl_account', gl_account, name from raw.ref_gl_accounts

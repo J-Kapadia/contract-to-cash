@@ -20,8 +20,6 @@ CUSTOMER = re.compile(r"acct_\d{4,}")
 BUCKET = re.compile(r"current|\d+-\d+|\d+\+")
 WEEK = re.compile(r"W(0[1-9]|1[0-3])")
 KEY = re.compile(r"[^\s/\x00-\x1f\x7f]+")
-# A bank counterparty's text may hold spaces; it has no `/`, no control character and no edge space.
-TEXT_KEY = re.compile(r"[^\s/\x00-\x1f\x7f]([^/\x00-\x1f\x7f]*[^\s/\x00-\x1f\x7f])?")
 LINE_NO = re.compile(r"\d+")
 CONFIG_KEY = re.compile(r"[A-Za-z0-9_]+(\.[A-Za-z0-9_]+)*")
 
@@ -52,7 +50,7 @@ RECURRING_LINES = ("recurring", "non_recurring", "total")
 CONCENTRATION_TOPS = ("top1", "top5", "top10")
 CONCENTRATION_CUSTOMER = ("customer", "share")
 ONETIME_TOTALS = ("credit_memos", "write_offs", "manual_adjustments")
-REF_FILES = ("business_days", "counterparties", "customer_matches", "freemail_domains", "gl_accounts", "legal_suffixes")
+REF_FILES = ("business_days", "customer_matches", "freemail_domains", "gl_accounts", "legal_suffixes")
 
 
 @dataclass(frozen=True)
@@ -152,13 +150,6 @@ def _onetime(rest: tuple[str, ...]) -> bool:
             and LINE_NO.fullmatch(rest[2]) is not None)
 
 
-def _ref(rest: tuple[str, ...]) -> bool:
-    """What follows `ref`: a reference file and one row's key; a counterparty's key is its text, spaces included."""
-    if len(rest) != 2 or rest[0] not in REF_FILES:
-        return False
-    return (TEXT_KEY if rest[0] == "counterparties" else KEY).fullmatch(rest[1]) is not None
-
-
 def _books_file(value: str) -> bool:
     from .gen import BOOKS  # the generator is heavy: only a `schema` id needs the stems
 
@@ -193,7 +184,7 @@ _FAMILIES: dict[str, tuple[Callable[[str], bool] | None, Callable[[tuple[str, ..
     "onetime": (_month, _onetime),
     "schema": (_month, _shape(_books_file)),
     "master": (None, _shape(_one_of(*MASTER_METRICS))),
-    "ref": (None, _ref),
+    "ref": (None, _shape(_one_of(*REF_FILES), _matching(KEY))),
     "cfg": (None, _shape(_matching(CONFIG_KEY))),
 }
 BACKTEST_CASE_METRIC = _shape(_one_of(*CASES), _one_of(*BACKTEST_METRICS))
