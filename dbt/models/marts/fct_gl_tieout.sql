@@ -9,8 +9,19 @@
 -- 4100) is shown with the sign of its sub-ledger, i.e. the ledger's debit-positive amount negated.
 -- diff_cents = gl_cents - subledger_cents. entry_ids lists the account's ledger entries of the month.
 --
+-- With a stacked trial balance in the warehouse (mart.fct_trial_balance, written by `c2c load-tb`), tb_cents
+-- is the trial balance's figure for the account in the sub-ledger's sign and tb_diff_cents = tb_cents -
+-- subledger_cents, both NULL for a month with no trial balance period. A balance account (1000, 1200, 2400)
+-- takes its net_cents of the period equal to the month. A revenue account (4000, 4100) takes its net_cents
+-- of the period minus the previous period's, because a trial balance carries year-to-date balances for
+-- income accounts; the first period present takes its net as is, and a fiscal-year reset shows as a
+-- one-month difference. An account with no row in a period present counts 0 there. A warehouse without
+-- the trial balance gets both columns NULL and the same rows as before.
+--
 -- Where the plan is silent: a month a sub-ledger has no row for counts as 0 there; the months are
 -- every month any of the five sources has, the same for every account.
+
+{% set tb = execute and adapter.get_relation(database=target.database, schema='mart', identifier='fct_trial_balance') -%}
 
 with ledger as (
     select
@@ -83,12 +94,58 @@ balances as (
     from joined
 )
 
+{%- if tb %},
+
+tb_periods as (
+    select distinct period as month from mart.fct_trial_balance
+),
+
+tb_nets as (
+    select period as month, account_id as gl_account, sum(net_cents) as net_cents
+    from mart.fct_trial_balance
+    group by period, account_id
+),
+
+tb_spine as (
+    select
+        tb_periods.month,
+        accounts.gl_account,
+        accounts.is_balance,
+        accounts.sign,
+        coalesce(tb_nets.net_cents, 0) as net_cents
+    from tb_periods
+    cross join accounts
+    left join tb_nets
+        on tb_nets.month = tb_periods.month and tb_nets.gl_account = accounts.gl_account
+),
+
+tb_figures as (
+    select
+        month,
+        gl_account,
+        sign * case when is_balance
+            then net_cents
+            else net_cents - coalesce(lag(net_cents) over (partition by gl_account order by month), 0)
+        end as tb_cents
+    from tb_spine
+)
+{%- endif %}
+
 select
-    month,
-    gl_account,
-    gl_cents::bigint as gl_cents,
-    subledger_cents::bigint as subledger_cents,
-    (gl_cents - subledger_cents)::bigint as diff_cents,
-    entry_ids
+    balances.month,
+    balances.gl_account,
+    balances.gl_cents::bigint as gl_cents,
+    balances.subledger_cents::bigint as subledger_cents,
+    (balances.gl_cents - balances.subledger_cents)::bigint as diff_cents,
+    balances.entry_ids,
+{%- if tb %}
+    tb_figures.tb_cents::bigint as tb_cents,
+    (tb_figures.tb_cents - balances.subledger_cents)::bigint as tb_diff_cents
 from balances
-order by month, gl_account
+left join tb_figures on tb_figures.month = balances.month and tb_figures.gl_account = balances.gl_account
+{%- else %}
+    null::bigint as tb_cents,
+    null::bigint as tb_diff_cents
+from balances
+{%- endif %}
+order by balances.month, balances.gl_account

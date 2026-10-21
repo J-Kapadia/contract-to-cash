@@ -8,7 +8,11 @@ models:
       subscription and credit lines (4000) and overage (4100). `gl_cents` is the running balance for
       1000, 1200 and 2400 and the period activity for 4000 and 4100, with credit-balance accounts shown
       with the sign of their sub-ledger; `diff_cents` is the ledger minus the sub-ledger and
-      `entry_ids` the account's ledger entries of the month.
+      `entry_ids` the account's ledger entries of the month. With a stacked trial balance in the
+      warehouse (`c2c load-tb`), `tb_cents` is the trial balance's figure for the account in the
+      sub-ledger's sign (the period's net for 1000, 1200 and 2400, the change in the year-to-date net
+      from the previous period for 4000 and 4100) and `tb_diff_cents` is `tb_cents` minus the
+      sub-ledger; both are NULL without a trial balance or for a month it has no period for.
     columns:
       - name: month
         data_tests: [not_null]
@@ -20,3 +24,7 @@ models:
                 values: ['1000', '1200', '2400', '4000', '4100']
       - name: diff_cents
         data_tests: [not_null]
+      - name: tb_cents
+        description: The stacked trial balance's figure for the account and month; NULL without one.
+      - name: tb_diff_cents
+        description: tb_cents minus subledger_cents; NULL without a trial balance for the month.
