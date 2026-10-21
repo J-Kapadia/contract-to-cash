@@ -36,7 +36,7 @@ def test_every_recorded_id_of_a_closed_mini_parses(warehouse):
         assert parsed.family in FAMILIES, number_id
         assert ids.is_valid(number_id), number_id
         if parsed.month_or_as_of is not None:
-            assert parsed.month_or_as_of == month, number_id
+            assert parsed.month_or_as_of[:7] == month, number_id  # an as-of date lies in its month
 
 
 VALID = [
