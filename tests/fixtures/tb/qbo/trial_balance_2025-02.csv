@@ -1,0 +1,20 @@
+Synthetic Co (synthetic)
+Trial Balance
+"As of February 28, 2025"
+
+,Debit,Credit
+1000 Cash,"238,028.66",
+1200 Accounts receivable,"118,728.35",
+2400 Deferred revenue,,"118,107.93"
+3000 Equity,,"276,639.77"
+4000 Subscription revenue,,"286,209.15"
+4100 Usage revenue,,"24,042.67"
+6000 Payroll,"238,138.88",
+6100 Commissions,"27,590.75",
+6200 Cloud and compute,"47,792.62",
+6300 Vendors and software,"18,134.49",
+6400 Events,"4,576.36",
+6500 Rent,"12,009.41",
+TOTAL,"704,999.52","704,999.52"
+
+"Accrual Basis  Sunday, March 02, 2025 09:15 AM GMT+00:00"

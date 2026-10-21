@@ -1,0 +1,20 @@
+Synthetic Co (synthetic)
+Trial Balance
+"As of July 31, 2024"
+
+,Debit,Credit
+1000 Cash,"204,048.35",
+1200 Accounts receivable,"102,656.70",
+2400 Deferred revenue,,"101,627.62"
+3000 Equity,,"251,218.27"
+4000 Subscription revenue,,"260,685.75"
+4100 Usage revenue,,"20,176.64"
+6000 Payroll,"224,775.89",
+6100 Commissions,"25,557.76",
+6200 Cloud and compute,"43,139.63",
+6300 Vendors and software,"16,981.50",
+6400 Events,"4,523.37",
+6500 Rent,"12,025.08",
+TOTAL,"633,708.28","633,708.28"
+
+"Accrual Basis  Friday, August 02, 2024 09:15 AM GMT+00:00"

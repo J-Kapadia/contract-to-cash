@@ -1,0 +1,21 @@
+Synthetic Co (synthetic)
+Trial Balance
+"As of January 31, 2026"
+
+Account,Debit,Credit
+1000 Cash,"820,059.29",
+1200 Accounts receivable,"328,578.80",
+2400 Deferred revenue,,"383,038.56"
+3000 Equity,,"708,659.06"
+4000 Subscription revenue,,"700,937.35"
+4100 Usage revenue,,"76,346.86"
+6000 Payroll,"472,109.15",
+6100 Commissions,"61,971.02",
+6200 Cloud and compute,"133,232.89",
+6300 Vendors and software,"31,274.76",
+6400 Events,"9,196.63",
+6500 Rent,"12,009.50",
+6900 Bad debt,549.79,
+Total,"1,868,981.83","1,868,981.83"
+
+Generated 2026-02-02
