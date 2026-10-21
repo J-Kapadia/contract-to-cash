@@ -4,14 +4,18 @@
 -- lines' net total is not covered by the payments applied by then; the open amount is the difference.
 -- Each open invoice gets three rows, dated by expected_pay_date() from the customer's days to pay in
 -- fct_days_to_pay for that month: base takes the median, downside the 80th percentile and upside the
--- lesser of the median and the invoice's terms. A customer with no row there takes the pooled row
+-- lesser of the median and the invoice's terms. The three dates of an invoice are ordered upside <=
+-- base <= downside: the upside is the earlier of its date and the base date, the downside the later of
+-- its date and the base date, so a past terms date re-dated by lateness never lands the upside after
+-- the base. A customer with no row there takes the pooled row
 -- (customer_id '*'). A past date becomes the day after month-end plus the customer's median lateness
 -- beyond due, the median of (paid date - due date) over the invoices paid in the trailing
 -- `dtp_window_months` months, the pooled median for a customer with fewer than `dtp_min_paid_invoices`
 -- of them; a negative median counts as none.
 --
 -- An invoice more than `at_risk_days_past_due` days past due at month-end is at risk. It brings no
--- cash in base or upside (cents 0); the downside keeps its open amount, flagged.
+-- cash in base or upside (cents 0); the downside keeps its open amount, flagged. Its dates obey the
+-- same order.
 --
 -- Where the books are silent: an invoice counts as paid by the same rule as fct_days_to_pay, only
 -- here the paid date is the date its running total of applications first covered it; a customer
@@ -180,6 +184,23 @@ cases as (
         end as case_days
     from dated
     cross join (values ('base'), ('downside'), ('upside')) as cases ("case")
+),
+
+dated_cases as (
+    select
+        month,
+        invoice_id,
+        customer_id,
+        "case",
+        {{ expected_pay_date('invoice_date', 'due_date', 'as_of', 'case_days', 'lateness_days', source('raw', 'ref_business_days')) }} as case_date,
+        case when at_risk and "case" <> 'downside' then 0 else open_cents end::bigint as cents,
+        at_risk
+    from (
+        select
+            cases.*,
+            date_diff('day', due_date, as_of) > {{ policy('at_risk_days_past_due') }} as at_risk
+        from cases
+    )
 )
 
 select
@@ -187,13 +208,12 @@ select
     invoice_id,
     customer_id,
     "case",
-    {{ expected_pay_date('invoice_date', 'due_date', 'as_of', 'case_days', 'lateness_days', source('raw', 'ref_business_days')) }} as expected_date,
-    case when at_risk and "case" <> 'downside' then 0 else open_cents end::bigint as cents,
+    case "case"
+        when 'upside' then least(case_date, max(case when "case" = 'base' then case_date end) over (partition by month, invoice_id))
+        when 'downside' then greatest(case_date, max(case when "case" = 'base' then case_date end) over (partition by month, invoice_id))
+        else case_date
+    end as expected_date,
+    cents,
     at_risk
-from (
-    select
-        cases.*,
-        date_diff('day', due_date, as_of) > {{ policy('at_risk_days_past_due') }} as at_risk
-    from cases
-)
+from dated_cases
 order by month, invoice_id, "case"

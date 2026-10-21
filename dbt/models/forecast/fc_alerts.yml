@@ -1,0 +1,27 @@
+version: 2
+
+models:
+  - name: fc_alerts
+    description: >
+      The minimum-cash alert per case: the first week whose ending cash is below the policy's
+      `min_cash_cents` and by how much it falls short at the end of that week. A case that never
+      falls below it has no row.
+    columns:
+      - name: as_of
+        data_tests: [not_null]
+      - name: case
+        quote: true
+        data_tests:
+          - not_null
+          - unique
+          - accepted_values:
+              arguments:
+                values: [base, downside, upside]
+      - name: first_breach_week
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [W01, W02, W03, W04, W05, W06, W07, W08, W09, W10, W11, W12, W13]
+      - name: shortfall_cents
+        data_tests: [not_null]

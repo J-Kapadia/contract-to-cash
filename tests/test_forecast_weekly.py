@@ -190,3 +190,48 @@ def test_commissions_are_the_plan_rates_on_forecast_bookings_and_collections_pai
     got = {(case, day): cents for case, day, cents in query(built, 'SELECT "case", date, cents FROM fc_build.fc_commissions')}
     assert want and got == {k: v for k, v in want.items() if v}
     assert {day.day for _, day in got} == {15}
+
+
+# ------------------------------------------------------------------ the cases keep their order
+
+def ending(built, week: str) -> dict[str, int]:
+    return dict(query(built, 'SELECT "case", any_value(ending_cents) FROM fc_build.fc_cash_13w WHERE week = ? GROUP BY 1', [week]))
+
+
+def test_at_week_13_the_downside_ends_below_the_base_and_the_base_below_the_upside(built):
+    end = ending(built, "W13")
+    assert end["downside"] < end["base"] < end["upside"], end
+
+
+def test_the_open_receivables_of_the_first_two_weeks_are_ordered_upside_first(built):
+    for week in ("W01", "W02"):
+        cents = dict(query(built, 'SELECT "case", sum(cents) FROM fc_build.fc_cash_13w WHERE week = ? AND line = \'open_ar\' GROUP BY 1', [week]))
+        assert cents["downside"] <= cents["base"] <= cents["upside"], (week, cents)
+
+
+# Lines whose cash out grows with bookings: a crossing from any other line is a defect.
+BOOKING_DRIVEN = {"commissions", "cloud"}
+
+
+def test_no_case_crosses_another_in_the_first_two_weeks_and_a_later_crossing_names_a_cost_that_scales_with_bookings(built):
+    rows = query(built, "SELECT week, lower_case, higher_case, gap_cents, driver FROM fc_build.fc_case_crossings")
+    assert not [r for r in rows if r[0] in ("W01", "W02")], rows
+    assert all(r[3] > 0 and r[4] in BOOKING_DRIVEN for r in rows), rows
+    assert len({(r[0], r[1], r[2]) for r in rows}) == len(rows)
+
+
+def test_a_crossing_is_listed_for_every_week_and_pair_whose_ending_cash_is_out_of_order(built):
+    ends = {(case, week): cents for case, week, cents in query(
+        built, 'SELECT DISTINCT "case", week, ending_cents FROM fc_build.fc_cash_13w')}
+    order = ("downside", "base", "upside")
+    want = {(week, low, high): ends[(low, week)] - ends[(high, week)]
+            for week in WEEKS for i, low in enumerate(order) for high in order[i + 1:]
+            if ends[(high, week)] < ends[(low, week)]}
+    got = {(week, low, high): gap for week, low, high, gap in query(
+        built, "SELECT week, lower_case, higher_case, gap_cents FROM fc_build.fc_case_crossings")}
+    assert got == want
+
+
+def test_the_commissions_and_alerts_keys_are_unique(built):
+    assert not query(built, 'SELECT "case", date FROM fc_build.fc_commissions GROUP BY 1, 2 HAVING count(*) > 1')
+    assert not query(built, 'SELECT "case" FROM fc_build.fc_alerts GROUP BY 1 HAVING count(*) > 1')

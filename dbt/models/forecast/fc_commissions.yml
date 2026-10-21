@@ -1,0 +1,23 @@
+version: 2
+
+models:
+  - name: fc_commissions
+    description: >
+      Commissions paid in the 91 days after the as-of date per case and day, as positive cents: the
+      plan's booking rate on forecast bookings and its collection rate on forecast collections, paid
+      on the 15th of the following month. One row per case and day with a commission; the pair
+      (case, date) is the key.
+    columns:
+      - name: as_of
+        data_tests: [not_null]
+      - name: case
+        quote: true
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [base, downside, upside]
+      - name: date
+        data_tests: [not_null]
+      - name: cents
+        data_tests: [not_null]

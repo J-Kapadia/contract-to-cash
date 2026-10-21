@@ -77,7 +77,7 @@ expected_cash,acct_0009,inv_000088,,downside,,,,,,2026-05-25,6100000,false
 expected_cash,acct_0009,inv_000088,,upside,,,,,,2026-04-02,6100000,false
 expected_cash,acct_0002,inv_000089,,base,,,,,,2026-04-03,2187500,false
 expected_cash,acct_0002,inv_000089,,downside,,,,,,2026-04-07,2187500,false
-expected_cash,acct_0002,inv_000089,,upside,,,,,,2026-04-06,2187500,false
+expected_cash,acct_0002,inv_000089,,upside,,,,,,2026-04-03,2187500,false
 expected_cash,acct_0003,inv_000090,,base,,,,,,2026-05-07,3100000,false
 expected_cash,acct_0003,inv_000090,,downside,,,,,,2026-05-25,3100000,false
 expected_cash,acct_0003,inv_000090,,upside,,,,,,2026-04-29,3100000,false
@@ -86,13 +86,13 @@ expected_cash,acct_0007,inv_000091,,downside,,,,,,2026-04-27,1212500,false
 expected_cash,acct_0007,inv_000091,,upside,,,,,,2026-04-20,1212500,false
 expected_cash,acct_0010,inv_000092,,base,,,,,,2026-04-06,1125000,false
 expected_cash,acct_0010,inv_000092,,downside,,,,,,2026-04-13,1125000,false
-expected_cash,acct_0010,inv_000092,,upside,,,,,,2026-04-08,1125000,false
+expected_cash,acct_0010,inv_000092,,upside,,,,,,2026-04-06,1125000,false
 expected_cash,acct_0007,inv_000093,,base,,,,,,2026-04-20,2875000,false
 expected_cash,acct_0007,inv_000093,,downside,,,,,,2026-04-27,2875000,false
 expected_cash,acct_0007,inv_000093,,upside,,,,,,2026-04-20,2875000,false
 expected_cash,acct_0008,inv_000094,,base,,,,,,2026-04-13,15738450,false
 expected_cash,acct_0008,inv_000094,,downside,,,,,,2026-04-17,15738450,false
-expected_cash,acct_0008,inv_000094,,upside,,,,,,2026-04-14,15738450,false
+expected_cash,acct_0008,inv_000094,,upside,,,,,,2026-04-13,15738450,false
 expected_cash,acct_0001,inv_000095,,base,,,,,,2026-05-12,275000,false
 expected_cash,acct_0001,inv_000095,,downside,,,,,,2026-05-27,275000,false
 expected_cash,acct_0001,inv_000095,,upside,,,,,,2026-05-12,275000,false

@@ -14,6 +14,7 @@ from pathlib import Path
 import pytest
 
 from c2c import db, dbt_runner, load
+from c2c import truth_reference as tr
 from c2c.truth_reference import collections as ref
 from conftest import DEFAULT_CONFIG, MINI_BOOKS, MINI_TRUTH, MINI_WINDOW, ROOT, shared_dir
 
@@ -25,9 +26,13 @@ CALENDAR = ref.business_days(REFERENCE / "business_days.csv")
 COUNT = {"window_months": 24, "min_paid": 3, "at_risk_days": 120}
 
 
-def committed() -> list[dict]:
-    with EXPECTED.open(encoding="utf-8", newline="") as fh:
+def csv_rows(path: Path) -> list[dict]:
+    with path.open(encoding="utf-8", newline="") as fh:
         return list(csv.DictReader(fh))
+
+
+def committed() -> list[dict]:
+    return csv_rows(EXPECTED)
 
 
 def tuples(rows: list[dict]) -> list[tuple]:
@@ -86,6 +91,24 @@ def test_aging_days_to_pay_and_expected_cash_equal_the_expected_file_row_for_row
 def test_the_expected_file_equals_a_recomputation_from_the_books():
     files = ref.expected(MINI_BOOKS, MINI_TRUTH, ROOT / "tests" / "fixtures" / "config")
     assert files == {EXPECTED.name: EXPECTED.read_text(encoding="utf-8")}
+
+
+def test_the_reference_dates_every_open_invoice_upside_no_later_than_base_and_base_no_later_than_downside():
+    customer_of = {r["source_id"]: r["true_customer_id"] for r in csv_rows(MINI_TRUTH / "identities.csv")
+                   if r["source_system"] == "billing"}
+    invoices = [{**r, "customer_id": customer_of[r["billing_customer_id"]]} for r in csv_rows(MINI_BOOKS / "invoices.csv")]
+    owner = {r["invoice_id"]: r["customer_id"] for r in invoices}
+    payments = [{**r, "customer_id": owner.get(r["invoice_id"], customer_of[r["billing_customer_id"]])}
+                for r in csv_rows(MINI_BOOKS / "payments.csv")]
+    checked = 0
+    for month in tr.months_between(*MINI_WINDOW):
+        by_invoice: dict[str, dict[str, date]] = {}
+        for row in ref.expected_cash(invoices, payments, tr.month_end(month), calendar=CALENDAR, **COUNT):
+            by_invoice.setdefault(row["invoice_id"], {})[row["case"]] = row["expected_date"]
+        for invoice_id, on in by_invoice.items():
+            assert on["upside"] <= on["base"] <= on["downside"], (month, invoice_id, on)
+            checked += 1
+    assert checked > 10
 
 
 # ---------------------------------------------------------------- the edge cases

@@ -178,10 +178,12 @@ class Books:
             median, p80, lateness = self.days(month, customer)
             terms = (due - issued).days
             risk = (as_of - due).days > POLICY.at_risk_days_past_due
-            for case, dtp in (("base", median), ("downside", p80),
-                              ("upside", terms if median is None else min(median, terms))):
-                out[(month, invoice, case)] = (
-                    customer, reference_date(issued, due, as_of, dtp, lateness), 0 if risk and case != "downside" else cents, risk)
+            on = {case: reference_date(issued, due, as_of, dtp, lateness)
+                  for case, dtp in (("base", median), ("downside", p80),
+                                    ("upside", terms if median is None else min(median, terms)))}
+            on["upside"], on["downside"] = min(on["upside"], on["base"]), max(on["downside"], on["base"])
+            for case in CASES:
+                out[(month, invoice, case)] = (customer, on[case], 0 if risk and case != "downside" else cents, risk)
         return out
 
 
@@ -205,6 +207,16 @@ def test_every_open_invoice_has_a_row_per_case_equal_to_the_rules_applied_to_the
     assert len({invoice for _, invoice, _ in expected}) > 10
     assert {case for _, _, case in expected} == set(CASES)
     assert mart(mini_cash) == expected
+
+
+def test_every_open_invoice_is_dated_upside_no_later_than_base_and_base_no_later_than_downside(mini_cash):
+    dates: dict[tuple[str, str], dict[str, date]] = defaultdict(dict)
+    for (month, invoice, case), (_, on, _, _) in mart(mini_cash).items():
+        dates[month, invoice][case] = on
+    assert len(dates) > 10 and {month for month, _ in dates} <= set(MONTHS)
+    assert all(set(by_case) == set(CASES) for by_case in dates.values())
+    for key, by_case in dates.items():
+        assert by_case["upside"] <= by_case["base"] <= by_case["downside"], (key, by_case)
 
 
 def test_march_dates_are_business_days_after_month_end(mini_cash):
@@ -248,7 +260,9 @@ def test_a_past_expected_date_is_shifted_to_the_day_after_month_end_plus_latenes
         dtp = {"base": median, "downside": p80, "upside": min(median, (due - issued).days)}[case]
         if issued + timedelta(days=dtp) <= AS_OF:
             shifted += 1
-            assert on == next_business_day(AS_OF + timedelta(days=1 + lateness)), (invoice, case)
+            assert on <= next_business_day(AS_OF + timedelta(days=1 + lateness)) or case == "downside", (invoice, case)
+            if case == "base":
+                assert on == next_business_day(AS_OF + timedelta(days=1 + lateness)), (invoice, case)
     assert shifted, "mini has no open invoice whose expected date is already past"
 
 

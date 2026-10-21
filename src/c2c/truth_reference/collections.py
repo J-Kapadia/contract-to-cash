@@ -217,9 +217,11 @@ def expected_cash(invoices: Iterable[Row], applications: Iterable[Row], as_of: d
     """One row per open invoice and case at `as_of`: customer, expected date, cents, at-risk flag.
 
     Base takes the customer's median days to pay, downside its 80th percentile and upside the
-    lesser of the median and the invoice's terms; a customer with no row takes the pooled one. An
-    invoice more than `at_risk_days` past due brings no cash in base or upside, and the downside
-    keeps its open amount, flagged.
+    lesser of the median and the invoice's terms; a customer with no row takes the pooled one. The
+    dates of an invoice are ordered upside <= base <= downside: the upside takes the earlier of its
+    date and the base date, the downside the later of its date and the base date. An invoice more
+    than `at_risk_days` past due brings no cash in base or upside, and the downside keeps its open
+    amount, flagged; its dates obey the same order.
     """
     day = _date(as_of)
     invoices, applications = list(invoices), list(applications)
@@ -237,10 +239,13 @@ def expected_cash(invoices: Iterable[Row], applications: Iterable[Row], as_of: d
         terms = (t["due_date"] - t["invoice_date"]).days
         risk = (day - t["due_date"]).days > at_risk_days
         by_case = {"base": median, "downside": p80, "upside": terms if median is None else min(median, terms)}
+        dates = {case: expected_pay_date(t, day, by_case[case], lateness, calendar) for case in CASES}
+        dates["upside"] = min(dates["upside"], dates["base"])
+        dates["downside"] = max(dates["downside"], dates["base"])
         for case in CASES:
             rows.append({
                 "invoice_id": invoice_id, "customer_id": customer, "case": case,
-                "expected_date": expected_pay_date(t, day, by_case[case], lateness, calendar),
+                "expected_date": dates[case],
                 "cents": 0 if risk and case != "downside" else open_cents, "at_risk": risk,
             })
     return rows

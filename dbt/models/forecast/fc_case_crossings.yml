@@ -1,0 +1,39 @@
+version: 2
+
+models:
+  - name: fc_case_crossings
+    description: >
+      The weeks in which a case ends with less cash than a case that should sit below it (expected
+      order of ending cash: downside < base < upside): one row per as-of date, week, lower case and
+      higher case, with the gap in cents and the cash line whose difference between the two cases is
+      largest in that week. A row for a week is the reason a forecast section can give for a case
+      dipping below another.
+    columns:
+      - name: as_of
+        data_tests: [not_null]
+      - name: week
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [W01, W02, W03, W04, W05, W06, W07, W08, W09, W10, W11, W12, W13]
+      - name: lower_case
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [base, downside]
+      - name: higher_case
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [base, upside]
+      - name: gap_cents
+        data_tests: [not_null]
+      - name: driver
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [open_ar, contracted, renewal, expansion, new, payroll, commissions, cloud, vendors, events, rent]
