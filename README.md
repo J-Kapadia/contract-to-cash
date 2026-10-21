@@ -179,6 +179,7 @@ ok    signoff               signed by readme scratch (synthetic) (finance_lead) 
 | `c2c explain` | Print the provenance of a number id: its value, step, digest and source rows; `--depth N` walks composites to their leaves. |
 | `c2c gen` | Generate the books and the answer key from a seed, or with `--verify` check them against the manifest. `--fixture mini` or `small` selects a preset. |
 | `c2c inject` | Copy the books to `--out` with one named error planted (`--error`), or all seven answer-key errors, one per month (`--all`). |
+| `c2c load-tb` | Stack a directory of monthly trial balance exports (`.csv` and `.xlsx`) into `mart.fct_trial_balance` and its CSV (`--csv`), and run the four trial balance checks: each Total row equals its account rows, debits equal credits in every month, no month is missing, and an account that appears or disappears is reported. Two files for one period are refused. Exit 3 when a check fails. |
 | `c2c master` | Build the customer master through `--month` and report its clusters, candidate pairs and scores; `--check` compares the matches with the answer key. |
 | `c2c memo` | Write the memo for a closed `--month` to `OUT/MONTH/index.html`; refuses a month that is not closed. |
 | `c2c signoff` | Sign the files in the configuration directory. A person confirms it in a terminal; without one it exits 4. |
