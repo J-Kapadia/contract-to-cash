@@ -26,13 +26,8 @@ def _module_names() -> list[str]:
     return sorted(m.name for m in pkgutil.iter_modules(commands.__path__) if not m.name.startswith("_"))
 
 
-def _module(name: str) -> str:
-    """The module of a command name: a hyphen in the name is an underscore in the module."""
-    return name.replace("-", "_")
-
-
 def _load(name: str) -> ModuleType:
-    return importlib.import_module(f"{commands.__name__}.{_module(name)}")
+    return importlib.import_module(f"{commands.__name__}.{name}")
 
 
 def _locked(module: ModuleType) -> click.Command:
@@ -79,10 +74,10 @@ class CommandGroup(click.Group):
         ctx.exit(error.exit)
 
     def list_commands(self, ctx: click.Context) -> list[str]:
-        return [name.replace("_", "-") for name in _module_names()]
+        return _module_names()
 
     def get_command(self, ctx: click.Context, cmd_name: str) -> click.Command | None:
-        if _module(cmd_name) not in _module_names():
+        if cmd_name not in _module_names():
             return None
         return _locked(_load(cmd_name))
 
