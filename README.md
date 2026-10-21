@@ -174,6 +174,7 @@ ok    signoff               signed by readme scratch (synthetic) (finance_lead) 
 
 | Command | What it does |
 | --- | --- |
+| `c2c backtest` | Re-run the forecast as of each eligible month-end (`--from`, `--to` narrow the range) and score it against the receipts, disbursements and revenue the books show later: 13-week cash-in WAPE, net-cash and ending-balance error per case, a naive baseline (trailing 13-week average receipts) and 3-month revenue error, written to `forecast.backtest`. A month with too little closed history or a horizon past the books is listed with its reason, not scored. Reads no answer key. Exit 4 when a month through the last eligible one is not closed, 2 for a month outside the books. |
 | `c2c close` | Close `--month`: load the books through it, run the models once, close each month up to it in order, run the controls and write a provenance record for every number. `--check` compares a closed month with the answer key and re-derives every provenance digest. Exit 3 when a control fails. |
 | `c2c doctor` | Report the health of the installation: versions, the books and their manifest, the sign-off, the warehouse and its lock, the reviewed customer pairs. Exit 0 healthy, 1 warnings, 2 failures. |
 | `c2c explain` | Print the provenance of a number id: its value, step, digest and source rows; `--depth N` walks composites to their leaves. |
