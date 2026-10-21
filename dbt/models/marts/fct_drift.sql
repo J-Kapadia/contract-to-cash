@@ -5,7 +5,13 @@
     closed month; the first month has no volume rows.
 
     Where the plan is silent: a table with no row in a month counts zero for it, so a file that goes
-    silent is a shift of -10000 bps, and the shift is truncated toward zero. -#}
+    silent is a shift of -10000 bps, and the shift is truncated toward zero.
+
+    With a stacked trial balance in the warehouse (`mart.fct_trial_balance`, written by `c2c load-tb`),
+    an account whose first trial balance period is the month and that the raw ledger does not hold in
+    that month or before is new too: one `new_account` row with the account's trial balance rows in the
+    period as its value. A warehouse without the trial balance gets the rows the ledger alone gives. -#}
+{%- set has_tb = execute and adapter.get_relation(database=target.database, schema='mart', identifier='fct_trial_balance') is not none -%}
 {% set stems = [
     'crm_accounts', 'crm_contacts', 'pipeline_snapshots', 'contracts', 'contract_lines', 'usage_monthly',
     'billing_customers', 'invoices', 'payments', 'bank_transactions', 'gl', 'payroll_runs',
@@ -60,6 +66,29 @@ new_account as (
     group by first_account.month, first_account.key
 ),
 
+{%- if has_tb %}
+
+first_tb_account as (
+    select account_id as key, min(period) as month
+    from mart.fct_trial_balance
+    where account_id is not null
+    group by account_id
+),
+
+new_tb_account as (
+    select first_tb_account.month, 'new_account' as category, first_tb_account.key,
+        count(*)::bigint as value_cents
+    from first_tb_account
+    join mart.fct_trial_balance as lines
+        on lines.account_id = first_tb_account.key and lines.period = first_tb_account.month
+    where not exists (
+        select 1 from {{ source('raw', 'gl') }} as ledger
+        where ledger.gl_account = first_tb_account.key and ledger._month <= first_tb_account.month
+    )
+    group by first_tb_account.month, first_tb_account.key
+),
+{%- endif %}
+
 new_customer as (
     select month, 'new_customer' as category, key, 1::bigint as value_cents
     from first_customer
@@ -110,6 +139,10 @@ volume_shift as (
 
 firsts as (
     select month, category, key, value_cents from new_account
+    {%- if has_tb %}
+    union all
+    select month, category, key, value_cents from new_tb_account
+    {%- endif %}
     union all
     select month, category, key, value_cents from new_customer
     union all

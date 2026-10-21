@@ -3,6 +3,9 @@
 -- threshold, a leaf over the rows it is about. The four counts (new accounts, customers, line types and
 -- volume shifts) are always present, a leaf over the union of their items' rows; with no item they
 -- stand over no row.
+-- A new account the stacked trial balance (mart.fct_trial_balance) holds and the raw ledger does not
+-- takes its trial balance rows of the month as its source query. `c2c explain` lists source rows from
+-- `raw.*` tables only, so the explain page of such a number shows a matching digest and no row listing.
 with months as (
     select
         $month as month,
@@ -19,8 +22,13 @@ items as (
         case when d.category = 'volume_shift' then 'bps' else 'count' end as unit,
         case d.category
             when 'new_account' then
-                'select _row_hash from raw.gl where _month = ''' || d.month || ''' and gl_account = '''
-                    || replace(d.key, '''', '''''') || ''''
+                case when exists (select 1 from raw.gl where _month = d.month and gl_account = d.key) then
+                    'select _row_hash from raw.gl where _month = ''' || d.month || ''' and gl_account = '''
+                        || replace(d.key, '''', '''''') || ''''
+                else
+                    'select _row_hash from mart.fct_trial_balance where period = ''' || d.month
+                        || ''' and account_id = ''' || replace(d.key, '''', '''''') || ''''
+                end
             when 'new_customer' then
                 'select _row_hash from raw.crm_accounts where _month = ''' || d.month || ''' and crm_account_id = '''
                     || replace(d.key, '''', '''''') || ''''

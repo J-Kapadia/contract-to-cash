@@ -5,7 +5,10 @@ models:
     description: >
       What changed in the books, one row per month, category and key over every month of the raw books.
       new_account is a ledger account seen for the first time (key the account, value_cents its ledger
-      lines in that month), new_customer a CRM account seen for the first time (value_cents 1),
+      lines in that month; where a stacked trial balance (mart.fct_trial_balance, from `c2c load-tb`) is in
+      the warehouse, an account whose first trial balance period is the month and that the raw ledger does
+      not hold in that month or before is new too, value_cents its trial balance rows in the period),
+      new_customer a CRM account seen for the first time (value_cents 1),
       new_line_type a contract line type seen for the first time (value_cents its lines in that month),
       and volume_shift a source file whose row count moved against the previous calendar month by at
       least the policy threshold in basis points (key the file stem, value_cents its rows in the month,
