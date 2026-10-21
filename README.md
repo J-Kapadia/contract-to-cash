@@ -183,6 +183,7 @@ ok    signoff               signed by readme scratch (synthetic) (finance_lead) 
 | `c2c inject` | Copy the books to `--out` with one named error planted (`--error`), or all seven answer-key errors, one per month (`--all`). |
 | `c2c load-tb` | Stack a directory of monthly trial balance exports (`.csv` and `.xlsx`) into `mart.fct_trial_balance` and its CSV (`--csv`), and run the four trial balance checks: each Total row equals its account rows, debits equal credits in every month, no month is missing, and an account that appears or disappears is reported. Two files for one period are refused. Exit 3 when a check fails. |
 | `c2c master` | Build the customer master through `--month` and report its clusters, candidate pairs and scores; `--check` compares the matches with the answer key. |
+| `c2c rollforward` | Close `--month` (a no-op when its books are unchanged), build the forecast as of that month's end, then in one transaction lock it and every closed month before it and publish the base, upside and downside cases to the `forecast` tables; no scratch schema is left. Running it again changes no hash. Exit 3 when a control fails, 2 for a month outside the books. |
 | `c2c memo` | Write the memo for a closed `--month` to `OUT/MONTH/index.html`; refuses a month that is not closed. |
 | `c2c signoff` | Sign the files in the configuration directory. A person confirms it in a terminal; without one it exits 4. |
 | `c2c status` | List the months with their state and result hash, and the forecast runs by as-of date. |
